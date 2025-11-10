@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Bronze/brass gradient for scales -->
+    <linearGradient id="brassGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4af37;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#c5a028;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#b8860b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b6914;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Purple glow -->
+    <radialGradient id="purpleGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#9370db;stop-opacity:0.4" />
+      <stop offset="50%" style="stop-color:#8a2be2;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#4b0082;stop-opacity:0.2" />
+    </radialGradient>
+
+    <!-- Chain metal gradient -->
+    <linearGradient id="chainMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c0c0c0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#808080;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#505050;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Shadow effect -->
+    <filter id="scaleShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="6" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Metallic shine -->
+    <filter id="metalShine">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
+      <feSpecularLighting result="specOut" specularExponent="30" lighting-color="#ffffff">
+        <fePointLight x="128" y="50" z="150"/>
+      </feSpecularLighting>
+      <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
+    </filter>
+  </defs>
+
+  <!-- Background glow -->
+  <circle cx="128" cy="128" r="100" fill="url(#purpleGlow)"/>
+
+  <!-- Balance scale -->
+  <g filter="url(#scaleShadow)">
+    <!-- Central pillar -->
+    <rect x="123" y="80" width="10" height="100"
+          fill="url(#brassGradient)"
+          stroke="#6b5610"
+          stroke-width="2"
+          filter="url(#metalShine)"/>
+
+    <!-- Pillar highlight -->
+    <rect x="124" y="85" width="4" height="90"
+          fill="#f0e68c"
+          opacity="0.4"/>
+
+    <!-- Base -->
+    <ellipse cx="128" cy="180" rx="40" ry="8"
+             fill="url(#brassGradient)"
+             stroke="#6b5610"
+             stroke-width="2"
+             filter="url(#metalShine)"/>
+
+    <!-- Base decoration -->
+    <ellipse cx="128" cy="180" rx="30" ry="6"
+             fill="#d4af37"
+             opacity="0.5"/>
+
+    <!-- Top crossbeam -->
+    <rect x="60" y="75" width="136" height="8"
+          fill="url(#brassGradient)"
+          stroke="#6b5610"
+          stroke-width="2"
+          rx="2"
+          filter="url(#metalShine)"/>
+
+    <!-- Crossbeam highlight -->
+    <rect x="65" y="76" width="126" height="3"
+          fill="#f0e68c"
+          opacity="0.4"/>
+
+    <!-- Center ornament -->
+    <circle cx="128" cy="79" r="8"
+            fill="url(#brassGradient)"
+            stroke="#6b5610"
+            stroke-width="2"/>
+    <circle cx="128" cy="79" r="5"
+            fill="#d4af37"
+            opacity="0.6"/>
+
+    <!-- Left chain -->
+    <g>
+      <!-- Chain links -->
+      <ellipse cx="85" cy="85" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="85" cy="95" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="85" cy="105" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="85" cy="115" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+    </g>
+
+    <!-- Right chain -->
+    <g>
+      <!-- Chain links -->
+      <ellipse cx="171" cy="85" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="171" cy="95" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="171" cy="105" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+      <ellipse cx="171" cy="115" rx="3" ry="5"
+               fill="url(#chainMetal)"
+               stroke="#404040"
+               stroke-width="1"/>
+    </g>
+
+    <!-- Left pan (tilted down - heavier) -->
+    <g transform="translate(0, 15)">
+      <!-- Pan rim -->
+      <ellipse cx="85" cy="120" rx="35" ry="10"
+               fill="url(#brassGradient)"
+               stroke="#6b5610"
+               stroke-width="2"
+               filter="url(#metalShine)"/>
+
+      <!-- Pan bowl -->
+      <path d="M 50 120 Q 85 135 120 120 L 115 122 Q 85 132 55 122 Z"
+            fill="url(#brassGradient)"
+            stroke="#6b5610"
+            stroke-width="2"
+            filter="url(#metalShine)"/>
+
+      <!-- Pan highlight -->
+      <ellipse cx="75" cy="122" rx="15" ry="5"
+               fill="#f0e68c"
+               opacity="0.5"/>
+
+      <!-- Chain attachment -->
+      <rect x="83" y="115" width="4" height="8"
+            fill="url(#chainMetal)"
+            stroke="#404040"
+            stroke-width="1"/>
+    </g>
+
+    <!-- Right pan (tilted up - lighter) -->
+    <g transform="translate(0, -5)">
+      <!-- Pan rim -->
+      <ellipse cx="171" cy="120" rx="35" ry="10"
+               fill="url(#brassGradient)"
+               stroke="#6b5610"
+               stroke-width="2"
+               filter="url(#metalShine)"/>
+
+      <!-- Pan bowl -->
+      <path d="M 136 120 Q 171 130 206 120 L 201 121 Q 171 128 141 121 Z"
+            fill="url(#brassGradient)"
+            stroke="#6b5610"
+            stroke-width="2"
+            filter="url(#metalShine)"/>
+
+      <!-- Pan highlight -->
+      <ellipse cx="161" cy="121" rx="15" ry="4"
+               fill="#f0e68c"
+               opacity="0.5"/>
+
+      <!-- Chain attachment -->
+      <rect x="169" y="115" width="4" height="8"
+            fill="url(#chainMetal)"
+            stroke="#404040"
+            stroke-width="1"/>
+    </g>
+
+    <!-- Decorative elements on pans -->
+    <!-- Left pan weight (grain) -->
+    <g transform="translate(0, 15)">
+      <circle cx="80" cy="125" r="4" fill="#daa520" opacity="0.8"/>
+      <circle cx="90" cy="127" r="3" fill="#daa520" opacity="0.8"/>
+      <circle cx="85" cy="130" r="3.5" fill="#daa520" opacity="0.8"/>
+    </g>
+
+    <!-- Right pan (empty - imbalance) -->
+    <g transform="translate(0, -5)">
+      <!-- Just a few grains -->
+      <circle cx="168" cy="122" r="2" fill="#daa520" opacity="0.6"/>
+      <circle cx="174" cy="123" r="1.5" fill="#daa520" opacity="0.6"/>
+    </g>
+
+    <!-- Balance indicator (showing imbalance) -->
+    <g opacity="0.6">
+      <path d="M 128 70 L 123 60 L 133 60 Z"
+            fill="#8b0000"
+            stroke="#660000"
+            stroke-width="1"/>
+    </g>
+  </g>
+
+  <!-- Floor shadow -->
+  <ellipse cx="128" cy="200" rx="60" ry="12"
+           fill="#000000"
+           opacity="0.25"/>
+
+  <!-- Subtle grain particles falling (scarcity) -->
+  <g opacity="0.4">
+    <circle cx="70" cy="160" r="1.5" fill="#daa520"/>
+    <circle cx="75" cy="170" r="1" fill="#daa520"/>
+    <circle cx="68" cy="175" r="1.2" fill="#daa520"/>
+    <circle cx="72" cy="182" r="1" fill="#daa520"/>
+  </g>
+</svg>

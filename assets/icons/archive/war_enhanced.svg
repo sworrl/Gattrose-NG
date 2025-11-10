@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Metallic gradient for swords -->
+    <linearGradient id="steelGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#c0c0c0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#808080;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#606060;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#404040;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Red blood gradient -->
+    <radialGradient id="bloodGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff0000;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#cc0000;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#8b0000;stop-opacity:0.7" />
+    </radialGradient>
+
+    <!-- Gold hilt gradient -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#daa520;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b8860b;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Shadow effect -->
+    <filter id="swordShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="4" dy="4" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Metallic shine -->
+    <filter id="metalShine">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
+      <feSpecularLighting result="specOut" specularExponent="20" lighting-color="#ffffff">
+        <fePointLight x="128" y="64" z="100"/>
+      </feSpecularLighting>
+      <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
+    </filter>
+  </defs>
+
+  <!-- Blood splatter background (subtle) -->
+  <circle cx="128" cy="128" r="90" fill="url(#bloodGradient)" opacity="0.4"/>
+
+  <!-- Left sword -->
+  <g filter="url(#swordShadow)">
+    <!-- Blade -->
+    <path d="M 60 196 L 196 60 L 190 54 L 54 190 Z"
+          fill="url(#steelGradient)"
+          stroke="#303030"
+          stroke-width="2"
+          filter="url(#metalShine)"/>
+    <!-- Blade edge highlight -->
+    <path d="M 64 192 L 192 64 L 190 62 L 62 190 Z"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="1.5"
+          opacity="0.6"/>
+    <!-- Blood stain on blade -->
+    <ellipse cx="110" cy="130" rx="15" ry="8"
+             fill="#8b0000"
+             opacity="0.6"
+             transform="rotate(-45 110 130)"/>
+
+    <!-- Crossguard -->
+    <rect x="170" y="75" width="40" height="10"
+          fill="url(#goldGradient)"
+          stroke="#8b6914"
+          stroke-width="1"
+          transform="rotate(-45 190 80)"
+          rx="2"/>
+
+    <!-- Hilt -->
+    <rect x="185" y="50" width="12" height="35"
+          fill="url(#goldGradient)"
+          stroke="#8b6914"
+          stroke-width="1"
+          transform="rotate(-45 191 67.5)"
+          rx="2"/>
+
+    <!-- Pommel -->
+    <circle cx="200" cy="56" r="8"
+            fill="url(#goldGradient)"
+            stroke="#8b6914"
+            stroke-width="1.5"/>
+    <circle cx="200" cy="56" r="5"
+            fill="#b8860b"
+            opacity="0.7"/>
+  </g>
+
+  <!-- Right sword -->
+  <g filter="url(#swordShadow)">
+    <!-- Blade -->
+    <path d="M 196 196 L 60 60 L 66 54 L 202 190 Z"
+          fill="url(#steelGradient)"
+          stroke="#303030"
+          stroke-width="2"
+          filter="url(#metalShine)"/>
+    <!-- Blade edge highlight -->
+    <path d="M 192 192 L 64 64 L 66 62 L 194 190 Z"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="1.5"
+          opacity="0.6"/>
+    <!-- Blood stain on blade -->
+    <ellipse cx="146" cy="130" rx="15" ry="8"
+             fill="#8b0000"
+             opacity="0.6"
+             transform="rotate(45 146 130)"/>
+
+    <!-- Crossguard -->
+    <rect x="46" y="75" width="40" height="10"
+          fill="url(#goldGradient)"
+          stroke="#8b6914"
+          stroke-width="1"
+          transform="rotate(45 66 80)"
+          rx="2"/>
+
+    <!-- Hilt -->
+    <rect x="59" y="50" width="12" height="35"
+          fill="url(#goldGradient)"
+          stroke="#8b6914"
+          stroke-width="1"
+          transform="rotate(45 65 67.5)"
+          rx="2"/>
+
+    <!-- Pommel -->
+    <circle cx="56" cy="56" r="8"
+            fill="url(#goldGradient)"
+            stroke="#8b6914"
+            stroke-width="1.5"/>
+    <circle cx="56" cy="56" r="5"
+            fill="#b8860b"
+            opacity="0.7"/>
+  </g>
+
+  <!-- Center intersection glow -->
+  <circle cx="128" cy="128" r="15" fill="#ff0000" opacity="0.3"/>
+  <circle cx="128" cy="128" r="10" fill="#ff4444" opacity="0.4"/>
+  <circle cx="128" cy="128" r="5" fill="#ff8888" opacity="0.5"/>
+</svg>

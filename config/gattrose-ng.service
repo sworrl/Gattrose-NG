@@ -1,0 +1,24 @@
+[Unit]
+Description=Gattrose-NG Background Scanning Daemon
+Documentation=https://github.com/eurrl/gattrose-ng
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/eurrl/Documents/Code & Scripts/gattrose-ng
+ExecStart=/usr/bin/python3 /home/eurrl/Documents/Code & Scripts/gattrose-ng/gattrose-daemon.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

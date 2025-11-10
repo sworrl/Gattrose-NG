@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Bone gradient -->
+    <linearGradient id="boneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5f5dc;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#e8e8d0;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#d3d3c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a9a99a;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Aged bone gradient (yellowed) -->
+    <radialGradient id="agedBone" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#fffacd;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f0e68c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bdb76b;stop-opacity:1" />
+    </radialGradient>
+
+    <!-- Eye socket darkness -->
+    <radialGradient id="socketDark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#1a1a1a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:0.9" />
+    </radialGradient>
+
+    <!-- Skull shadow -->
+    <filter id="skullShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="8" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.6"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Bone texture -->
+    <filter id="boneTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise"/>
+      <feDiffuseLighting in="noise" lighting-color="#ffffff" surfaceScale="1">
+        <feDistantLight azimuth="45" elevation="60"/>
+      </feDiffuseLighting>
+      <feComposite operator="in" in2="SourceGraphic"/>
+      <feComposite operator="arithmetic" in2="SourceGraphic" k1="0" k2="0.7" k3="0.3" k4="0"/>
+    </filter>
+  </defs>
+
+  <!-- Background glow -->
+  <circle cx="128" cy="115" r="80" fill="#000000" opacity="0.2"/>
+
+  <!-- Skull -->
+  <g filter="url(#skullShadow)">
+    <!-- Main cranium -->
+    <ellipse cx="128" cy="95" rx="65" ry="70"
+             fill="url(#agedBone)"
+             stroke="#8b8b7a"
+             stroke-width="2"
+             filter="url(#boneTexture)"/>
+
+    <!-- Cranium highlight -->
+    <ellipse cx="118" cy="75" rx="35" ry="30"
+             fill="#ffffff"
+             opacity="0.3"/>
+
+    <!-- Forehead ridge -->
+    <path d="M 75 70 Q 128 65 181 70"
+          fill="none"
+          stroke="#a9a99a"
+          stroke-width="2"
+          opacity="0.5"/>
+
+    <!-- Temporal lines -->
+    <path d="M 70 85 Q 75 95 70 105"
+          fill="none"
+          stroke="#8b8b7a"
+          stroke-width="1.5"
+          opacity="0.4"/>
+    <path d="M 186 85 Q 181 95 186 105"
+          fill="none"
+          stroke="#8b8b7a"
+          stroke-width="1.5"
+          opacity="0.4"/>
+
+    <!-- Left eye socket -->
+    <ellipse cx="98" cy="95" rx="20" ry="24"
+             fill="url(#socketDark)"
+             stroke="#000000"
+             stroke-width="2"/>
+    <ellipse cx="98" cy="95" rx="17" ry="21"
+             fill="#000000"/>
+    <!-- Eye socket rim highlight -->
+    <path d="M 80 88 Q 98 85 116 88"
+          fill="none"
+          stroke="#d3d3c0"
+          stroke-width="1.5"
+          opacity="0.6"/>
+
+    <!-- Right eye socket -->
+    <ellipse cx="158" cy="95" rx="20" ry="24"
+             fill="url(#socketDark)"
+             stroke="#000000"
+             stroke-width="2"/>
+    <ellipse cx="158" cy="95" rx="17" ry="21"
+             fill="#000000"/>
+    <!-- Eye socket rim highlight -->
+    <path d="M 140 88 Q 158 85 176 88"
+          fill="none"
+          stroke="#d3d3c0"
+          stroke-width="1.5"
+          opacity="0.6"/>
+
+    <!-- Nasal cavity -->
+    <path d="M 118 115 L 128 125 L 138 115 Q 133 105 128 105 Q 123 105 118 115 Z"
+          fill="url(#socketDark)"
+          stroke="#000000"
+          stroke-width="2"/>
+    <path d="M 120 115 L 128 123 L 136 115"
+          fill="#000000"/>
+
+    <!-- Cheekbones -->
+    <ellipse cx="85" cy="115" rx="12" ry="8"
+             fill="#bdb76b"
+             opacity="0.4"
+             transform="rotate(-20 85 115)"/>
+    <ellipse cx="171" cy="115" rx="12" ry="8"
+             fill="#bdb76b"
+             opacity="0.4"
+             transform="rotate(20 171 115)"/>
+
+    <!-- Upper jaw -->
+    <path d="M 78 135 Q 128 145 178 135"
+          fill="url(#agedBone)"
+          stroke="#8b8b7a"
+          stroke-width="2"
+          filter="url(#boneTexture)"/>
+
+    <!-- Teeth row (upper) -->
+    <g opacity="0.9">
+      <rect x="95" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="105" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="115" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="125" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="135" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="145" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="155" y="135" width="8" height="14" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+    </g>
+
+    <!-- Lower jaw -->
+    <path d="M 80 150 L 80 165 Q 128 175 176 165 L 176 150 Z"
+          fill="url(#agedBone)"
+          stroke="#8b8b7a"
+          stroke-width="2"
+          filter="url(#boneTexture)"/>
+
+    <!-- Jaw highlight -->
+    <ellipse cx="128" cy="160" rx="25" ry="8"
+             fill="#ffffff"
+             opacity="0.2"/>
+
+    <!-- Teeth row (lower) -->
+    <g opacity="0.9">
+      <rect x="95" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="105" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="115" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="125" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="135" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="145" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+      <rect x="155" y="145" width="8" height="12" fill="#fffacd" stroke="#8b8b7a" stroke-width="0.5" rx="1"/>
+    </g>
+
+    <!-- Jaw joint cracks -->
+    <path d="M 78 145 L 75 150" stroke="#8b8b7a" stroke-width="1" opacity="0.6"/>
+    <path d="M 178 145 L 181 150" stroke="#8b8b7a" stroke-width="1" opacity="0.6"/>
+
+    <!-- Skull cracks -->
+    <path d="M 145 50 Q 148 65 145 80"
+          fill="none"
+          stroke="#8b8b7a"
+          stroke-width="1.5"
+          opacity="0.5"/>
+    <path d="M 145 52 Q 155 55 165 50"
+          fill="none"
+          stroke="#8b8b7a"
+          stroke-width="1"
+          opacity="0.4"/>
+  </g>
+
+  <!-- Floor shadow -->
+  <ellipse cx="128" cy="210" rx="70" ry="15"
+           fill="#000000"
+           opacity="0.3"/>
+</svg>

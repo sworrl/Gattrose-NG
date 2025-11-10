@@ -1,0 +1,17 @@
+[Unit]
+Description=Gattrose-NG Database Maintenance Timer
+Requires=gattrose-maintenance.service
+
+[Timer]
+# Run daily at 3 AM
+OnCalendar=daily
+OnCalendar=*-*-* 03:00:00
+
+# Run 10 minutes after boot
+OnBootSec=10min
+
+# If missed (system was off), run on next boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

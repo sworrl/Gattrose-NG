@@ -1,0 +1,466 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Photorealistic gradients and filters -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#050810;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0d1220;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#151b2e;stop-opacity:1" />
+    </linearGradient>
+
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.25" />
+      <stop offset="50%" style="stop-color:#00cc66;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#008844;stop-opacity:0" />
+    </radialGradient>
+
+    <!-- Realistic alligator skin gradients -->
+    <linearGradient id="gatorBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a7c59;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#3d6b4a;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#2f5a3b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e3d28;stop-opacity:1" />
+    </linearGradient>
+
+    <radialGradient id="gatorBodyHighlight" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#6aa377;stop-opacity:0.8" />
+      <stop offset="50%" style="stop-color:#4a7c59;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2f5a3b;stop-opacity:1" />
+    </radialGradient>
+
+    <linearGradient id="gatorHead" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5a8c66;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4a7c59;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3d6b4a;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- WiFi wave gradient with neon glow -->
+    <linearGradient id="wifiWaves" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ffff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00ccff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0088ff;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Metallic router gradient -->
+    <linearGradient id="routerMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#505060;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#383848;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#282830;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#181820;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Lock gradient -->
+    <radialGradient id="lockGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ff4466;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#dd2244;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#aa0022;stop-opacity:1" />
+    </radialGradient>
+
+    <!-- Advanced shadow filter -->
+    <filter id="deepShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12"/>
+      <feOffset dx="0" dy="8" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Neon glow filter -->
+    <filter id="neonGlow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Skin texture pattern -->
+    <filter id="scaleTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8 0.4" numOctaves="4" seed="10"/>
+      <feColorMatrix values="0 0 0 0 0.2
+                               0 0 0 0 0.3
+                               0 0 0 0 0.2
+                               0 0 0 0.4 0"/>
+      <feComposite operator="in" in2="SourceGraphic"/>
+      <feComposite operator="arithmetic" in2="SourceGraphic" k1="0" k2="0.8" k3="0.2" k4="0"/>
+    </filter>
+
+    <!-- Metallic shine -->
+    <filter id="metalShine">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5"/>
+      <feSpecularLighting result="specOut" specularExponent="40" lighting-color="#ffffff">
+        <fePointLight x="256" y="100" z="200"/>
+      </feSpecularLighting>
+      <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="0.8" k4="0"/>
+    </filter>
+
+    <!-- Eye gloss -->
+    <radialGradient id="eyeGloss" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="60%" style="stop-color:#e0e0e0;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#c0c0c0;stop-opacity:0.5" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background with depth -->
+  <rect width="512" height="512" rx="90" fill="url(#bgGrad)"/>
+
+  <!-- Ambient lighting -->
+  <circle cx="256" cy="150" r="250" fill="url(#centerGlow)"/>
+
+  <!-- WiFi signal waves (neon style) -->
+  <g opacity="0.9" filter="url(#neonGlow)">
+    <path d="M 80 150 Q 256 20 432 150"
+          fill="none"
+          stroke="url(#wifiWaves)"
+          stroke-width="14"
+          stroke-linecap="round"
+          opacity="0.3"/>
+    <path d="M 120 170 Q 256 60 392 170"
+          fill="none"
+          stroke="url(#wifiWaves)"
+          stroke-width="14"
+          stroke-linecap="round"
+          opacity="0.5"/>
+    <path d="M 160 190 Q 256 100 352 190"
+          fill="none"
+          stroke="url(#wifiWaves)"
+          stroke-width="14"
+          stroke-linecap="round"
+          opacity="0.7"/>
+
+    <!-- Pulsing signal dot -->
+    <circle cx="256" cy="140" r="14" fill="url(#wifiWaves)">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="14;16;14" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Main Gator (photorealistic) -->
+  <g id="mainGator" filter="url(#deepShadow)" transform="translate(0, 20)">
+    <!-- Tail (curved, textured) -->
+    <path d="M 340 330 Q 410 315 445 275 Q 440 285 425 300 Q 405 320 385 330 L 375 328 Q 395 318 415 305 Q 430 290 435 280 Z"
+          fill="url(#gatorBody)"
+          stroke="#1e3d28"
+          stroke-width="3"
+          filter="url(#scaleTexture)"/>
+
+    <!-- Tail ridges -->
+    <g fill="#2f5a3b" opacity="0.7">
+      <polygon points="370,320 375,310 380,320"/>
+      <polygon points="390,315 395,305 400,315"/>
+      <polygon points="410,308 415,298 420,308"/>
+    </g>
+
+    <!-- Body (main mass with realistic shading) -->
+    <ellipse cx="256" cy="300" rx="95" ry="68"
+             fill="url(#gatorBodyHighlight)"
+             filter="url(#scaleTexture)"/>
+
+    <!-- Belly (lighter underbelly) -->
+    <ellipse cx="256" cy="310" rx="70" ry="45"
+             fill="#5a7c66"
+             opacity="0.4"/>
+
+    <!-- Body scales pattern -->
+    <g opacity="0.3">
+      <ellipse cx="220" cy="290" rx="15" ry="10" fill="#1e3d28"/>
+      <ellipse cx="250" cy="285" rx="18" ry="12" fill="#1e3d28"/>
+      <ellipse cx="280" cy="290" rx="16" ry="11" fill="#1e3d28"/>
+      <ellipse cx="235" cy="310" rx="14" ry="9" fill="#1e3d28"/>
+      <ellipse cx="270" cy="310" rx="15" ry="10" fill="#1e3d28"/>
+    </g>
+
+    <!-- Head (realistic proportions) -->
+    <ellipse cx="240" cy="240" rx="72" ry="56"
+             fill="url(#gatorHead)"
+             filter="url(#scaleTexture)"/>
+
+    <!-- Head highlight -->
+    <ellipse cx="230" cy="225" rx="40" ry="30"
+             fill="#6aa377"
+             opacity="0.3"/>
+
+    <!-- Snout (elongated, realistic) -->
+    <ellipse cx="195" cy="240" rx="65" ry="34"
+             fill="url(#gatorHead)"
+             filter="url(#scaleTexture)"/>
+    <ellipse cx="195" cy="236" rx="60" ry="30"
+             fill="#5a8c66"
+             opacity="0.3"/>
+
+    <!-- Snout texture bumps -->
+    <g fill="#3d6b4a" opacity="0.4">
+      <circle cx="160" cy="240" r="3"/>
+      <circle cx="175" cy="238" r="2.5"/>
+      <circle cx="155" cy="245" r="2"/>
+      <circle cx="168" cy="248" r="2.5"/>
+    </g>
+
+    <!-- Jaw line (subtle) -->
+    <path d="M 135 240 L 265 240"
+          stroke="#1e3d28"
+          stroke-width="3"
+          fill="none"
+          opacity="0.6"/>
+
+    <!-- Teeth (realistic, sharp) -->
+    <g fill="#fffff8" stroke="#e0e0d8" stroke-width="0.5">
+      <polygon points="155,234 158,243 161,234"/>
+      <polygon points="168,234 171,243 174,234"/>
+      <polygon points="181,234 184,243 187,234"/>
+      <polygon points="194,234 197,243 200,234"/>
+      <polygon points="207,234 210,243 213,234"/>
+      <polygon points="220,234 223,243 226,234"/>
+      <polygon points="233,234 236,243 239,234"/>
+    </g>
+
+    <!-- Lower teeth -->
+    <g fill="#fffff8" stroke="#e0e0d8" stroke-width="0.5">
+      <polygon points="152,246 155,237 158,246"/>
+      <polygon points="165,246 168,237 171,246"/>
+      <polygon points="178,246 181,237 184,246"/>
+      <polygon points="191,246 194,237 197,246"/>
+      <polygon points="204,246 207,237 210,246"/>
+      <polygon points="217,246 220,237 223,246"/>
+      <polygon points="230,246 233,237 236,246"/>
+    </g>
+
+    <!-- Eyes (photorealistic with depth) -->
+    <!-- Right eye (alert) -->
+    <ellipse cx="255" cy="224" rx="16" ry="18" fill="url(#eyeGloss)"/>
+    <ellipse cx="255" cy="225" rx="14" ry="16" fill="#fffff8"/>
+    <circle cx="256" cy="227" r="9" fill="#1a1a1a"/>
+    <circle cx="256" cy="226" r="7" fill="#0a0a0a"/>
+    <circle cx="259" cy="223" r="3.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="253" cy="228" r="1.5" fill="#ffffff" opacity="0.6"/>
+
+    <!-- Left eye (winking - more realistic) -->
+    <path d="M 273 224 Q 283 224 293 224"
+          stroke="#1e3d28"
+          stroke-width="5"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.8"/>
+    <path d="M 275 228 Q 283 227 291 228"
+          stroke="#2f5a3b"
+          stroke-width="3"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.5"/>
+
+    <!-- Nostrils (realistic) -->
+    <ellipse cx="148" cy="235" rx="5" ry="3.5" fill="#0a0a0a"/>
+    <ellipse cx="148" cy="234" rx="4" ry="2.5" fill="#1a1a1a"/>
+    <ellipse cx="163" cy="235" rx="5" ry="3.5" fill="#0a0a0a"/>
+    <ellipse cx="163" cy="234" rx="4" ry="2.5" fill="#1a1a1a"/>
+
+    <!-- Dorsal spikes (realistic ridges) -->
+    <g fill="#3d6b4a" stroke="#2f5a3b" stroke-width="1">
+      <path d="M 235 215 L 240 195 L 245 215 L 242 215 L 240 200 L 238 215 Z" opacity="0.9"/>
+      <path d="M 250 212 L 255 192 L 260 212 L 257 212 L 255 197 L 253 212 Z" opacity="0.9"/>
+      <path d="M 265 214 L 270 198 L 275 214 L 272 214 L 270 203 L 268 214 Z" opacity="0.9"/>
+      <path d="M 240 268 L 245 250 L 250 268 L 247 268 L 245 255 L 243 268 Z" opacity="0.9"/>
+      <path d="M 258 268 L 263 250 L 268 268 L 265 268 L 263 255 L 261 268 Z" opacity="0.9"/>
+      <path d="M 278 270 L 283 254 L 288 270 L 285 270 L 283 259 L 281 270 Z" opacity="0.9"/>
+      <path d="M 298 276 L 303 262 L 308 276 L 305 276 L 303 267 L 301 276 Z" opacity="0.9"/>
+    </g>
+
+    <!-- Front legs (realistic claws) -->
+    <ellipse cx="210" cy="288" rx="16" ry="30"
+             fill="url(#gatorBody)"
+             filter="url(#scaleTexture)"/>
+    <ellipse cx="290" cy="288" rx="16" ry="30"
+             fill="url(#gatorBody)"
+             filter="url(#scaleTexture)"/>
+
+    <!-- Claws (sharp, realistic) -->
+    <g fill="#1e3d28" stroke="#0a0a0a" stroke-width="0.5">
+      <path d="M 203 310 L 205 318 L 207 310 Z"/>
+      <path d="M 210 312 L 212 320 L 214 312 Z"/>
+      <path d="M 217 310 L 219 318 L 221 310 Z"/>
+      <path d="M 283 310 L 285 318 L 287 310 Z"/>
+      <path d="M 290 312 L 292 320 L 294 312 Z"/>
+      <path d="M 297 310 L 299 318 L 301 310 Z"/>
+    </g>
+
+    <!-- Back legs -->
+    <ellipse cx="190" cy="347" rx="22" ry="18"
+             fill="url(#gatorBody)"
+             filter="url(#scaleTexture)"/>
+    <ellipse cx="310" cy="347" rx="22" ry="18"
+             fill="url(#gatorBody)"
+             filter="url(#scaleTexture)"/>
+  </g>
+
+  <!-- Broken WiFi Router (realistic detail) -->
+  <g id="router" transform="translate(140, 222)" filter="url(#deepShadow)">
+    <!-- Router body (metallic) -->
+    <rect x="0" y="0" width="40" height="28" rx="4"
+          fill="url(#routerMetal)"
+          stroke="#101018"
+          stroke-width="2"
+          filter="url(#metalShine)"/>
+    <rect x="3" y="3" width="34" height="22" rx="2"
+          fill="#0a0a12"
+          opacity="0.8"/>
+
+    <!-- Ventilation slots -->
+    <g stroke="#050508" stroke-width="1" opacity="0.5">
+      <line x1="8" y1="6" x2="8" y2="22"/>
+      <line x1="12" y1="6" x2="12" y2="22"/>
+      <line x1="16" y1="6" x2="16" y2="22"/>
+      <line x1="20" y1="6" x2="20" y2="22"/>
+      <line x1="24" y1="6" x2="24" y2="22"/>
+      <line x1="28" y1="6" x2="28" y2="22"/>
+      <line x1="32" y1="6" x2="32" y2="22"/>
+    </g>
+
+    <!-- LED indicators (glowing) -->
+    <circle cx="10" cy="14" r="2.5" fill="#ff3366" filter="url(#neonGlow)">
+      <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="14" r="2.5" fill="#00ff88" filter="url(#neonGlow)"/>
+    <circle cx="30" cy="14" r="2.5" fill="#00ffff" filter="url(#neonGlow)">
+      <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Antenna (broken, bent) -->
+    <rect x="6" y="-18" width="4" height="18"
+          fill="#404050"
+          filter="url(#metalShine)"/>
+    <circle cx="8" cy="-18" r="4" fill="#ff3366" filter="url(#neonGlow)"/>
+
+    <!-- Crack/spark on antenna -->
+    <g filter="url(#neonGlow)">
+      <path d="M 9 -10 L 15 -6" stroke="#ffaa00" stroke-width="2.5" opacity="0.9"/>
+      <path d="M 9 -10 L 14 -8" stroke="#ffee88" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="9" cy="-10" r="1.5" fill="#ffff00"/>
+    </g>
+  </g>
+
+  <!-- Terminal window (realistic LCD screen) -->
+  <g id="terminal" transform="translate(130, 375)" filter="url(#deepShadow)">
+    <!-- Screen bezel -->
+    <rect x="-2" y="-2" width="254" height="104" rx="10"
+          fill="#1a1a1a"
+          stroke="#0a0a0a"
+          stroke-width="3"/>
+
+    <!-- Screen -->
+    <rect x="0" y="0" width="250" height="100" rx="8"
+          fill="#0a0e14"
+          opacity="0.95"
+          stroke="#00ff88"
+          stroke-width="2"/>
+
+    <!-- Title bar (MacOS style) -->
+    <rect x="0" y="0" width="250" height="28" rx="8"
+          fill="#151921"/>
+    <circle cx="18" cy="14" r="5" fill="#ff3366"/>
+    <circle cx="34" cy="14" r="5" fill="#ffaa00"/>
+    <circle cx="50" cy="14" r="5" fill="#00ff88"/>
+
+    <!-- Screen glow -->
+    <rect x="5" y="33" width="240" height="62"
+          fill="#00ff88"
+          opacity="0.05"/>
+
+    <!-- Terminal text (monospace, glowing) -->
+    <text font-family="'Courier New', monospace" font-size="13" fill="#00ff88" opacity="0.95">
+      <tspan x="12" y="50">$ airodump-ng wlan0mon</tspan>
+      <tspan x="12" y="68">$ aircrack-ng capture.cap</tspan>
+      <tspan x="12" y="86" fill="#00ffff">KEY FOUND! [ pwned123 ]</tspan>
+    </text>
+
+    <!-- Cursor blink -->
+    <rect x="218" y="75" width="8" height="14" fill="#00ff88" opacity="0.8">
+      <animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Broken lock (3D style) -->
+  <g id="brokenLock" transform="translate(360, 315)" filter="url(#deepShadow)">
+    <!-- Lock shadow base -->
+    <rect x="2" y="20" width="48" height="55" rx="10"
+          fill="#000000"
+          opacity="0.3"/>
+
+    <!-- Lock body (gradient depth) -->
+    <rect x="0" y="18" width="48" height="55" rx="10"
+          fill="url(#lockGrad)"/>
+    <rect x="4" y="22" width="40" height="47" rx="8"
+          fill="#1a1a1a"
+          opacity="0.4"/>
+
+    <!-- Lock body highlight -->
+    <rect x="8" y="24" width="15" height="20" rx="4"
+          fill="#ff6688"
+          opacity="0.3"/>
+
+    <!-- Broken shackle -->
+    <path d="M 10 18 L 10 6 A 14 14 0 0 1 38 6 L 38 14"
+          fill="none"
+          stroke="url(#lockGrad)"
+          stroke-width="8"
+          stroke-linecap="round"
+          filter="url(#metalShine)"/>
+
+    <!-- Break/crack effect (glowing) -->
+    <g filter="url(#neonGlow)">
+      <line x1="36" y1="14" x2="48" y2="4"
+            stroke="#ffaa00"
+            stroke-width="4"
+            opacity="0.95"/>
+      <line x1="34" y1="13" x2="45" y2="2"
+            stroke="#ffee88"
+            stroke-width="2.5"
+            opacity="0.8"/>
+      <circle cx="36" cy="14" r="2" fill="#ffff00"/>
+      <circle cx="48" cy="4" r="2" fill="#ffff00"/>
+    </g>
+
+    <!-- Keyhole (3D depth) -->
+    <circle cx="24" cy="44" r="7" fill="#aa0022"/>
+    <circle cx="24" cy="44" r="5" fill="#ff3366" opacity="0.8"/>
+    <rect x="20" y="44" width="8" height="16" fill="#aa0022" rx="2"/>
+    <rect x="21" y="44" width="6" height="15" fill="#ff3366" opacity="0.8" rx="1"/>
+  </g>
+
+  <!-- "NG" Badge (glossy 3D) -->
+  <g id="badge" transform="translate(390, 408)" filter="url(#deepShadow)">
+    <rect x="0" y="0" width="100" height="70" rx="12"
+          fill="url(#wifiWaves)"
+          filter="url(#metalShine)"/>
+    <rect x="4" y="4" width="92" height="62" rx="10"
+          fill="url(#wifiWaves)"
+          opacity="0.9"/>
+
+    <!-- Badge highlight -->
+    <ellipse cx="35" cy="25" rx="25" ry="15"
+             fill="#ffffff"
+             opacity="0.3"/>
+
+    <text x="50" y="50"
+          font-family="'Arial Black', sans-serif"
+          font-size="36"
+          font-weight="900"
+          fill="#FFFFFF"
+          text-anchor="middle"
+          letter-spacing="3"
+          filter="url(#deepShadow)">NG</text>
+  </g>
+
+  <!-- Outer border glow -->
+  <rect width="512" height="512" rx="90"
+        fill="none"
+        stroke="url(#wifiWaves)"
+        stroke-width="3"
+        opacity="0.4"
+        filter="url(#neonGlow)"/>
+</svg>

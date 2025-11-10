@@ -1,0 +1,32 @@
+[Unit]
+Description=Gattrose-NG 24/7 Auto-Attack Service
+After=network.target NetworkManager.service gattrose-scanner.service
+Wants=gattrose-scanner.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/gattrose-ng
+Environment="GATTROSE_NG_ROOT=/opt/gattrose-ng"
+Environment="GATTROSE_NG_VERSION=2.2.2"
+Environment="GATTROSE_SERVICE=attacker"
+
+# Start attacker in headless mode
+ExecStart=/opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/services/attacker_service.py
+
+# Restart policy
+Restart=always
+RestartSec=15
+
+# Resource limits
+CPUQuota=75%
+MemoryMax=1G
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gattrose-attacker
+
+[Install]
+WantedBy=multi-user.target

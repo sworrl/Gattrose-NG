@@ -1,0 +1,32 @@
+[Unit]
+Description=Gattrose-NG 24/7 WiFi Scanner Service
+After=network.target NetworkManager.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/gattrose-ng
+Environment="GATTROSE_NG_ROOT=/opt/gattrose-ng"
+Environment="GATTROSE_NG_VERSION=2.2.2"
+Environment="GATTROSE_SERVICE=scanner"
+
+# Start scanner in headless mode
+ExecStart=/opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/services/scanner_service.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+CPUQuota=50%
+MemoryMax=512M
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gattrose-scanner
+
+[Install]
+WantedBy=multi-user.target

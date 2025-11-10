@@ -1,0 +1,31 @@
+# GUI Framework
+PyQt6==6.7.1
+PyQt6-Qt6==6.7.2
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# Network and Security Tools
+scapy==2.6.1
+netifaces==0.11.0
+requests==2.32.3
+pyric==0.1.6.3
+
+# Data Processing
+pandas==2.2.3
+numpy==2.2.0
+
+# Configuration
+pyyaml==6.0.2
+python-dotenv==1.0.1
+
+# System Integration
+psutil==6.1.1
+pyudev==0.24.3
+
+# Logging and Monitoring
+coloredlogs==15.0.1
+
+# Updates and Versioning
+packaging==24.2

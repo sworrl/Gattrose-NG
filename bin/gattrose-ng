@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# Gattrose-NG Main Launcher
+# Requires root - starts services and launches GUI with elevated privileges
+#
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${YELLOW}[!] Gattrose-NG requires root privileges${NC}"
+    echo -e "${YELLOW}[*] Re-launching with sudo...${NC}"
+
+    # Preserve user's display and session info
+    export ORIGINAL_USER="${SUDO_USER:-$USER}"
+    export ORIGINAL_UID="$(id -u $ORIGINAL_USER)"
+    export ORIGINAL_GID="$(id -g $ORIGINAL_USER)"
+    export ORIGINAL_HOME="$(eval echo ~$ORIGINAL_USER)"
+
+    # Re-exec with sudo, preserving display
+    exec sudo -E \
+        DISPLAY="$DISPLAY" \
+        XAUTHORITY="$XAUTHORITY" \
+        XDG_RUNTIME_DIR="/run/user/$ORIGINAL_UID" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" \
+        "$0" "$@"
+fi
+
+# Now running as root
+echo -e "${GREEN}[✓] Running with root privileges${NC}"
+
+# Detect the original user (the one who invoked sudo)
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_UID="$(id -u $REAL_USER 2>/dev/null || echo 1000)"
+
+# Set up X authority for root to access user's display
+if [ -n "$DISPLAY" ]; then
+    XAUTH_FILE="$(eval echo ~$REAL_USER)/.Xauthority"
+    if [ -f "$XAUTH_FILE" ]; then
+        export XAUTHORITY="$XAUTH_FILE"
+        echo -e "${GREEN}[✓] Display access configured${NC}"
+    fi
+fi
+
+# Check if orchestrator service is running
+if ! systemctl is-active --quiet gattrose-orchestrator.service 2>/dev/null; then
+    echo -e "${YELLOW}[*] Starting Gattrose orchestrator service...${NC}"
+    systemctl start gattrose-orchestrator.service
+    sleep 2
+    echo -e "${GREEN}[✓] Orchestrator started${NC}"
+else
+    echo -e "${GREEN}[✓] Orchestrator already running${NC}"
+fi
+
+# Launch GUI as root with proper display access
+echo -e "${YELLOW}[*] Launching Gattrose-NG GUI...${NC}"
+cd /opt/gattrose-ng
+
+# Set environment for GUI
+export PYTHONPATH=/opt/gattrose-ng
+export QT_QPA_PLATFORM=xcb
+export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
+
+# Launch GUI
+exec /opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/main.py

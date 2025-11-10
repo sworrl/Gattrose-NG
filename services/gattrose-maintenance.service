@@ -1,0 +1,27 @@
+[Unit]
+Description=Gattrose-NG Database Maintenance Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/gattrose-ng
+Environment="GATTROSE_NG_ROOT=/opt/gattrose-ng"
+Environment="GATTROSE_NG_VERSION=2.2.2"
+Environment="GATTROSE_SERVICE=maintenance"
+
+# Run maintenance tasks
+ExecStart=/opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/services/maintenance_service.py
+
+# Resource limits
+CPUQuota=25%
+MemoryMax=256M
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gattrose-maintenance
+
+[Install]
+WantedBy=multi-user.target

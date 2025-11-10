@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Gattrose-NG Tray Service
+GenericName=Wireless Pentesting Background Service
+Comment=Gattrose-NG 24/7 background service with system tray control
+Exec=/opt/gattrose-ng/bin/gattrose-tray.sh
+Icon=/opt/gattrose-ng/assets/gattrose-ng.png
+Path=/opt/gattrose-ng
+Terminal=false
+Categories=System;Security;Network;
+Keywords=wireless;wifi;penetration;testing;security;tray;service;background;
+StartupNotify=true
+StartupWMClass=gattrose-tray
+X-GNOME-Autostart-enabled=false

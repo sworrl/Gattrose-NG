@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gattrose-NG Mobile Control</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="../assets/icons/gattrose-ng_photoreal.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>🐊 Gattrose-NG</h1>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    <nav class="main-nav">
+        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-view="networks">📡 Networks</button>
+        <button class="nav-btn" data-view="attacks">🎯 Attacks</button>
+        <button class="nav-btn" data-view="system">⚙️ System</button>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+        <!-- Dashboard View -->
+        <div class="view active" id="dashboardView">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📡</div>
+                    <div class="stat-value" id="totalNetworks">-</div>
+                    <div class="stat-label">Networks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="totalClients">-</div>
+                    <div class="stat-label">Clients</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🤝</div>
+                    <div class="stat-value" id="totalHandshakes">-</div>
+                    <div class="stat-label">Handshakes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔓</div>
+                    <div class="stat-value" id="crackedHandshakes">-</div>
+                    <div class="stat-label">Cracked</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔒 Encryption Distribution</h2>
+                <div id="encryptionChart" class="chart-container"></div>
+            </div>
+
+            <div class="section">
+                <h2>⏱️ Recent Activity</h2>
+                <div id="recentActivity" class="activity-list">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Networks View -->
+        <div class="view" id="networksView">
+            <div class="section">
+                <div class="search-bar">
+                    <input type="text" id="networkSearch" placeholder="🔍 Search networks..." class="search-input">
+                </div>
+
+                <div class="filter-bar">
+                    <select id="encryptionFilter" class="filter-select">
+                        <option value="">All Encryption</option>
+                        <option value="WPA2">WPA2</option>
+                        <option value="WPA3">WPA3</option>
+                        <option value="WPA">WPA</option>
+                        <option value="WEP">WEP</option>
+                        <option value="Open">Open</option>
+                    </select>
+                    <select id="wpsFilter" class="filter-select">
+                        <option value="">All WPS</option>
+                        <option value="enabled">WPS Enabled</option>
+                        <option value="disabled">WPS Disabled</option>
+                    </select>
+                </div>
+
+                <div id="networksList" class="networks-list">
+                    <p class="loading">Loading networks...</p>
+                </div>
+
+                <div class="pagination" id="networksPagination"></div>
+            </div>
+        </div>
+
+        <!-- Attacks View -->
+        <div class="view" id="attacksView">
+            <div class="section">
+                <h2>🎯 Attack Queue</h2>
+                <div id="attackQueue" class="attack-queue">
+                    <p class="loading">Loading attack queue...</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📜 Recent Attacks</h2>
+                <div id="attackHistory" class="attack-history">
+                    <p class="info">Attack history will appear here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System View -->
+        <div class="view" id="systemView">
+            <div class="section">
+                <h2>💻 System Status</h2>
+                <div class="system-info">
+                    <div class="info-row">
+                        <span class="info-label">Monitor Mode:</span>
+                        <span class="info-value" id="monitorMode">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Interfaces:</span>
+                        <span class="info-value" id="interfaces">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Scanning:</span>
+                        <span class="info-value" id="scanningStatus">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔧 Actions</h2>
+                <div class="action-buttons">
+                    <button class="action-btn" id="exportCsvBtn">📥 Export CSV</button>
+                    <button class="action-btn" id="refreshBtn">🔄 Refresh Data</button>
+                    <button class="action-btn danger" id="clearQueueBtn">🗑️ Clear Queue</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>ℹ️ About</h2>
+                <div class="about-info">
+                    <p><strong>Gattrose-NG</strong></p>
+                    <p>Next-Generation WiFi Penetration Testing Framework</p>
+                    <p class="version">Mobile Control Interface v1.0</p>
+                    <p class="security-notice">🔒 Secured with HTTPS & High-Security Headers</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Network Details Modal -->
+    <div class="modal" id="networkModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalNetworkName">Network Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn-primary" onclick="addToQueue()">Add to Queue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

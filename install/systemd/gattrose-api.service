@@ -1,0 +1,22 @@
+[Unit]
+Description=Gattrose-NG API Server
+Documentation=https://github.com/yourusername/gattrose-ng
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gattrose-ng
+Environment="PYTHONPATH=/opt/gattrose-ng"
+ExecStart=/opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/services/api_daemon.py
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=false
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

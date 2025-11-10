@@ -1,0 +1,216 @@
+app_version: 2.2.5
+manifest_version: 2.0.0
+last_updated: '2025-11-01'
+files:
+  VERSION:
+    index: '0000001'
+    serial: sctoru204e6gs4zpycjorj68877xyahg
+    version: 2.2.3
+    last_modified: '2025-11-01'
+    description: Application version number
+  gattrose-ng.py:
+    index: '0000002'
+    serial: 5rpf77r4vy1covbueflofkyox5rea9nk
+    version: 2.2.2
+    last_modified: '2025-11-01'
+    description: Main launcher with venv management
+  gattrose-ng.desktop:
+    index: '0000003'
+    serial: w8x2rh5qt9ncvpfm3bjdkl6yoea4zu7s
+    version: 1.0.2
+    last_modified: '2025-11-01'
+    description: Desktop launcher file (terminal mode)
+  src/main.py:
+    index: '0000100'
+    serial: adj3qmf6m3nmvsa6bi88yr7a4l820vpk
+    version: 2.1.3
+    last_modified: '2025-11-01'
+    description: Application entry point
+  src/version.py:
+    index: '0000101'
+    serial: mgem15i6mix6gqvbhmvg7c5wiiqut1zf
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Centralized version management
+  src/core/boot_verify.py:
+    index: '0000102'
+    serial: k7hn2q9p4txwd6rfmzbv8jcy0ae3ugls
+    version: 1.0.2
+    last_modified: '2025-11-01'
+    description: Boot-time verification and auto-repair system
+  src/database/models.py:
+    index: '0001000'
+    serial: 829a4ry86o85b3cg987v6anh4sojdgm6
+    version: 2.2.3
+    last_modified: '2025-11-01'
+    description: Database models with OUI tables
+  src/gui/main_window.py:
+    index: '0002000'
+    serial: k7p2xq9w8fnm5vjt4czd3brh6eal1yus
+    version: 2.2.5
+    last_modified: '2025-11-01'
+    description: Main window with fixed database fields and enhanced scanner display
+  src/gui/theme.py:
+    index: '0002001'
+    serial: mx1xubcbjhhy6hwobtte3khx5e7fsz8a
+    version: 2.2.3
+    last_modified: '2025-11-01'
+    description: Theme system with textures
+  src/tools/wifi_scanner.py:
+    index: '0003000'
+    serial: 1hm3r9gd8ldge98412x24f17pu6j4efo
+    version: 2.1.0
+    last_modified: '2025-10-30'
+    description: WiFi scanner classes
+  src/tools/wifi_monitor.py:
+    index: '0003001'
+    serial: q3zsuq27kch2g7ciu2d8w40p0voxlu1b
+    version: 2.1.3
+    last_modified: '2025-11-01'
+    description: Monitor mode management
+  src/utils/process_manager.py:
+    index: '0004000'
+    serial: otv6w4ln9q97xqsel62hx19sx1hksdm9
+    version: 2.1.3
+    last_modified: '2025-11-01'
+    description: Process management with race condition fix
+  src/utils/mac_vendor.py:
+    index: '0004001'
+    serial: f8avxbkmpb920ohprp0fqiwl11w1l7ry
+    version: 2.0.0
+    last_modified: '2025-10-29'
+    description: MAC vendor lookup
+  src/utils/location.py:
+    index: '0004002'
+    serial: 35nh9la479glarclvrgcct6s3pdfo5oi
+    version: 1.0.0
+    last_modified: '2025-10-31'
+    description: GPS and GeoIP location services
+  src/utils/oui_downloader.py:
+    index: '0004003'
+    serial: 6qpyo525ipg41njq9lelra7evvy36474
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: OUI database downloader (IEEE + Wireshark)
+  src/utils/file_manifest.py:
+    index: '0004004'
+    serial: l3k2fw0ozcfecx3u6gbz930yox8rgfwh
+    version: 1.0.1
+    last_modified: '2025-11-01'
+    description: File manifest manager with serial tracking
+  src/services/scanner_service.py:
+    index: '0005000'
+    serial: pu1vxudnxccjxcac4dsv25qsnabu7vq5
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: 24/7 WiFi scanning daemon
+  src/services/attacker_service.py:
+    index: '0005001'
+    serial: u8zht6n2ju3fz9icfi4q391s7q4qk4if
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: 24/7 automated attack daemon
+  src/services/maintenance_service.py:
+    index: '0005002'
+    serial: iu77oa0jb0ujsrfb11h5unxzk9m7x4yd
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Database maintenance service
+  bin/gattrose-gui.sh:
+    index: '0006000'
+    serial: zd5ixyf5pdohk2bvah8a5igma4h5fgw4
+    version: 1.0.2
+    last_modified: '2025-11-01'
+    description: GUI wrapper script (Stage 2)
+  bin/gattrose-launcher.sh:
+    index: '0006001'
+    serial: 7nh4wx9kp2qtbfm6vjcz5del8ry3ouas
+    version: 1.0.3
+    last_modified: '2025-11-01'
+    description: Desktop launcher with terminal-based sudo
+  bin/gattrose-direct.sh:
+    index: '0006003'
+    serial: e5jh2mn8rqw3kpv9tcxfzb7aud6lyo4s
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Ultra-simple direct sudo launcher
+  bin/com.gattrose.pkexec.policy:
+    index: '0006002'
+    serial: xujvj2ck9xvvogollwp0xxcg848ntxbb
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: PolicyKit policy for GUI elevation
+  services/gattrose-scanner.service:
+    index: '0007000'
+    serial: pogeplfmjb0ups6iup631m9vgo7z9exj
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Scanner systemd service
+  services/gattrose-attacker.service:
+    index: '0007001'
+    serial: mwwgkm3fh7d1ex7aa00u5z7uvvysm4zd
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Attacker systemd service
+  services/gattrose-maintenance.service:
+    index: '0007002'
+    serial: spxabam0mcmp5y9qyiw1jtf9nrev5ry1
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Maintenance systemd service
+  services/gattrose-maintenance.timer:
+    index: '0007003'
+    serial: uf104wie5rf3zp2ug1l719bft1mk6x5r
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Maintenance timer (daily 3 AM)
+  services/README.md:
+    index: '0007004'
+    serial: px4s762bwl85sigj6nyuojp3j8eeejm9
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Services documentation
+  docs/VERSION_MANAGEMENT.md:
+    index: 0008000
+    serial: 66whgbygxeitl0cguz8lrbst11glw3bq
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Version management guide
+  docs/CHANGELOG_v2.1.3.md:
+    index: 0008001
+    serial: slg6xwri2d5k8hiolmhvtfyu3er46wch
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Race condition fix changelog
+  docs/CHANGELOG_v2.2.3.md:
+    index: 0008002
+    serial: unj3o8r8yt54hld1alahao369fiiqcoh
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Infrastructure overhaul changelog
+  docs/PROCESS_MANAGEMENT.md:
+    index: 0008003
+    serial: 30uj9pybgrrzu45q1fv7rcp4z5619etd
+    version: 1.0.0
+    last_modified: '2025-11-01'
+    description: Process management documentation
+  docs/FILE_MANIFEST.yaml:
+    index: 0008005
+    serial: 7k2mw9pxqfnv5jt4czd3brh6eal1yus8
+    version: 2.0.1
+    last_modified: '2025-11-01'
+    description: File manifest (moved to docs/)
+next_serial: FILE-00100
+next_indexes:
+  root: '0000004'
+  core: '0000103'
+  database: '0001001'
+  gui: '0002002'
+  tools: '0003002'
+  utils: '0004005'
+  services: '0005003'
+  scripts: '0006004'
+  systemd: '0007005'
+  documentation: 0008004
+  tests: 0009000
+  future: '0010000'

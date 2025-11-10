@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Gattrose-NG GUI
+GenericName=Wireless Penetration Testing Suite
+Comment=Gattrose-NG GUI - Advanced wireless security auditing
+Exec=/usr/local/bin/gattrose-ng
+Icon=/opt/gattrose-ng/assets/gattrose-ng.png
+Path=/opt/gattrose-ng
+Terminal=false
+Categories=System;Security;Network;
+Keywords=wireless;wifi;penetration;testing;security;aircrack;hacking;wpa;wep;handshake;
+StartupNotify=true
+StartupWMClass=gattrose-ng
+X-GNOME-Autostart-enabled=false
