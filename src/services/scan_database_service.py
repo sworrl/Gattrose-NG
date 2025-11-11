@@ -42,6 +42,10 @@ class ScanDatabaseService:
         self._upsert_thread: Optional[threading.Thread] = None
         self._last_triangulation = 0  # Track when we last ran triangulation
 
+        # Track data state to detect changes
+        self._last_data_hash = None
+        self._consecutive_no_change = 0
+
         # Initialize GPS track manager for smart observation deduplication
         self.gps_track_manager = GPSTrackManager()
 
@@ -201,6 +205,28 @@ class ScanDatabaseService:
             self._upsert_thread.join(timeout=5)
         print("[+] Database upsert worker stopped")
 
+    def _get_current_data_hash(self):
+        """Compute hash of current scan data to detect changes"""
+        session = get_session()
+        try:
+            # Get current data sorted by BSSID/MAC for consistent hashing
+            networks = session.query(CurrentScanNetwork).order_by(CurrentScanNetwork.bssid).all()
+            clients = session.query(CurrentScanClient).order_by(CurrentScanClient.mac_address).all()
+
+            # Create hash from network BSSIDs, signals, and last_seen times
+            # This captures new networks, signal changes, and time updates
+            import hashlib
+            hash_data = []
+            for net in networks:
+                hash_data.append(f"{net.bssid}:{net.power}:{net.last_seen}")
+            for client in clients:
+                hash_data.append(f"{client.mac_address}:{client.power}:{client.last_seen}")
+
+            data_str = "|".join(hash_data)
+            return hashlib.md5(data_str.encode()).hexdigest()
+        finally:
+            session.close()
+
     def _upsert_loop(self):
         """Background loop to periodically upsert to historical tables"""
         cache_cleanup_counter = 0
@@ -208,7 +234,21 @@ class ScanDatabaseService:
             try:
                 time.sleep(self.upsert_interval)
                 if self.running:
-                    self.upsert_to_historical()
+                    # Check if data has changed before upserting
+                    current_hash = self._get_current_data_hash()
+
+                    if current_hash != self._last_data_hash:
+                        # Data has changed - perform upsert
+                        self.upsert_to_historical()
+                        self._last_data_hash = current_hash
+                        self._consecutive_no_change = 0
+                    else:
+                        # No changes detected - skip upsert
+                        self._consecutive_no_change += 1
+                        if self._consecutive_no_change == 1:  # Log first skip
+                            print(f"[DB] No changes detected, skipping upsert")
+                        elif self._consecutive_no_change % 30 == 0:  # Log every 5 minutes
+                            print(f"[DB] No changes for {self._consecutive_no_change * self.upsert_interval / 60:.1f} minutes")
 
                     # Run triangulation less frequently (e.g., every 60 seconds)
                     # This calculates physical AP locations from multiple GPS observations
@@ -353,7 +393,7 @@ class ScanDatabaseService:
                     'power': client.power,
                     'packets': client.packets,
                     'vendor': client.vendor,
-                    'probes': client.probes,
+                    'probes': client.probed_essids,
                     'first_seen': client.first_seen,
                     'last_seen': client.last_seen,
                     'updated_at': client.updated_at
@@ -621,11 +661,41 @@ class ScanDatabaseService:
 
                     networks_upserted += 1
 
-                # Upsert clients
+                # Upsert clients (filter out probe requests and randomized MACs)
                 current_clients = session.query(CurrentScanClient).all()
                 clients_upserted = 0
+                clients_skipped = 0
+
+                def is_locally_administered_mac(mac: str) -> bool:
+                    """Check if MAC address is locally administered (randomized)
+
+                    Locally administered addresses have bit 1 of the first octet set to 1.
+                    Examples: x2, x3, x6, x7, xA, xB, xE, xF (where x is any hex digit)
+                    """
+                    if not mac or len(mac) < 2:
+                        return False
+                    try:
+                        first_octet = int(mac[0:2], 16)
+                        return (first_octet & 0x02) != 0
+                    except:
+                        return False
 
                 for current_cli in current_clients:
+                    # Skip probe requests (not actually connected to any network)
+                    if not current_cli.bssid or current_cli.bssid == "(not associated)":
+                        clients_skipped += 1
+                        continue
+
+                    # Skip locally administered (randomized) MAC addresses
+                    # These are privacy features from mobile devices and don't represent real clients
+                    if is_locally_administered_mac(current_cli.mac_address):
+                        clients_skipped += 1
+                        continue
+
+                    # Update associated_networks JSON for this client
+                    import json
+                    associated_networks = [current_cli.bssid]
+
                     # Check if exists in historical
                     hist_cli = session.query(Client).filter_by(mac_address=current_cli.mac_address).first()
 
@@ -641,10 +711,20 @@ class ScanDatabaseService:
                                 hist_cli.min_signal = current_cli.power
                             hist_cli.current_signal = current_cli.power
 
+                        # Update associated networks (merge with existing)
+                        try:
+                            existing_networks = json.loads(hist_cli.associated_networks) if hist_cli.associated_networks else []
+                            if current_cli.bssid not in existing_networks:
+                                existing_networks.append(current_cli.bssid)
+                            hist_cli.associated_networks = json.dumps(existing_networks)
+                        except:
+                            hist_cli.associated_networks = json.dumps(associated_networks)
+
                     else:
                         # Create new
                         hist_cli = Client(
                             mac_address=current_cli.mac_address,
+                            associated_networks=json.dumps(associated_networks),
                             manufacturer=current_cli.vendor,
                             device_type=current_cli.device_type,
                             max_signal=current_cli.power,
@@ -659,8 +739,8 @@ class ScanDatabaseService:
 
                 session.commit()
 
-                if networks_upserted > 0 or clients_upserted > 0:
-                    print(f"[DB] Upserted {networks_upserted} networks, {clients_upserted} clients to historical tables")
+                if networks_upserted > 0 or clients_upserted > 0 or clients_skipped > 0:
+                    print(f"[DB] Upserted {networks_upserted} networks, {clients_upserted} clients to historical tables (skipped {clients_skipped} probe requests/randomized MACs)")
 
             except Exception as e:
                 session.rollback()
