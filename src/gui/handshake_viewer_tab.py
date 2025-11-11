@@ -128,6 +128,9 @@ class HandshakeViewerTab(QWidget):
         """Refresh the handshake list"""
         from ..database.models import get_session, Handshake, Network
 
+        # PRESERVE SELECTION - Save currently selected handshake ID before refresh
+        previously_selected_id = self.selected_handshake
+
         session = get_session()
         try:
             # Get search filter
@@ -164,7 +167,8 @@ class HandshakeViewerTab(QWidget):
                 f"Total: {len(results)} | Valid: {valid_count} | Cracked: {cracked_count}"
             )
 
-            # Update table
+            # Update table - BLOCK SIGNALS to prevent selection change event spam
+            self.handshake_table.blockSignals(True)
             self.handshake_table.setRowCount(0)
 
             for hs, net in results:
@@ -228,6 +232,15 @@ class HandshakeViewerTab(QWidget):
                 # Actions (store handshake ID)
                 action_item = QTableWidgetItem(str(hs.id))
                 self.handshake_table.setItem(row, 7, action_item)
+
+            # RESTORE SELECTION - Re-select the previously selected handshake
+            self.handshake_table.blockSignals(False)
+            if previously_selected_id:
+                for row in range(self.handshake_table.rowCount()):
+                    handshake_id = int(self.handshake_table.item(row, 7).text())
+                    if handshake_id == previously_selected_id:
+                        self.handshake_table.selectRow(row)
+                        break
 
         finally:
             session.close()
@@ -523,8 +536,60 @@ class HandshakeViewerTab(QWidget):
         if not self.selected_handshake:
             return
 
-        self.analysis_output.append("\n🔓 Queuing handshake for cracking...")
-        self.analysis_output.append("   This will be handled by the WPA cracking service")
+        from ..database.models import get_session, Handshake, Network
+        from ..services.orchestrator import get_orchestrator
+        from ..services.attack_queue import AttackType
 
-        # In a full implementation, this would add to the attack queue
-        # For now, just show the message
+        self.analysis_output.append("\n🔓 Queuing handshake for cracking...")
+
+        session = get_session()
+        try:
+            # Get handshake and network info
+            handshake = session.query(Handshake).filter(Handshake.id == self.selected_handshake).first()
+            if not handshake:
+                self.analysis_output.append("   ❌ Error: Handshake not found in database")
+                return
+
+            network = session.query(Network).filter(Network.bssid == handshake.bssid).first()
+            if not network:
+                self.analysis_output.append("   ❌ Error: Network not found in database")
+                return
+
+            # Get orchestrator and add to attack queue
+            orchestrator = get_orchestrator()
+            if not orchestrator:
+                self.analysis_output.append("   ❌ Error: Orchestrator service not running")
+                self.analysis_output.append("   💡 Start the orchestrator service to enable cracking")
+                return
+
+            # Add WPA crack job to queue
+            job = orchestrator.attack_queue.add_job(
+                attack_type=AttackType.WPA_CRACK,
+                target_bssid=network.bssid,
+                target_ssid=network.ssid or "Unknown",
+                channel=network.channel or 1,
+                priority=80,  # High priority
+                metadata={
+                    'handshake_id': handshake.id,
+                    'handshake_file': handshake.capture_file,
+                    'encryption': network.encryption
+                }
+            )
+
+            if job:
+                self.analysis_output.append(f"   ✅ Added to attack queue (Job #{job.id})")
+                self.analysis_output.append(f"   📋 Target: {network.ssid or 'Hidden'} ({network.bssid})")
+                self.analysis_output.append(f"   🔐 Encryption: {network.encryption}")
+                self.analysis_output.append(f"   📊 Priority: {job.priority}")
+                self.analysis_output.append("   ⏳ Attack will start when queue processes this job")
+                self.analysis_output.append("   💡 Check 'Attack Queue' tab for status")
+            else:
+                self.analysis_output.append("   ❌ Failed to add to attack queue")
+
+        except Exception as e:
+            self.analysis_output.append(f"   ❌ Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+        finally:
+            session.close()
