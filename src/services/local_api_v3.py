@@ -27,7 +27,12 @@ from flask import Flask, jsonify, request, send_file, stream_with_context, Respo
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_sock import Sock
+try:
+    from flask_sock import Sock
+    HAS_WEBSOCKETS = True
+except ImportError:
+    HAS_WEBSOCKETS = False
+    print("[API] Warning: flask-sock not installed, WebSocket support disabled")
 from functools import wraps
 import threading
 import subprocess
@@ -72,7 +77,7 @@ class APIv3Server:
         self.main_window = main_window
         self.port = port
         self.app = Flask(__name__)
-        self.sock = Sock(self.app)
+        self.sock = Sock(self.app) if HAS_WEBSOCKETS else None
 
         # Enable CORS for localhost
         CORS(self.app, resources={r"/*": {"origins": "http://localhost:*"}})
@@ -92,8 +97,8 @@ class APIv3Server:
         # Initialize database
         init_db()
 
-        # Get services
-        self.orchestrator = get_orchestrator(auto_start=False)
+        # Get services (orchestrator is already running, just get the instance)
+        self.orchestrator = get_orchestrator()  # Get existing orchestrator instance
         self.gps_service = get_gps_service()
         self.scan_db_service = get_scan_db_service()
         self.config = DBConfig()
@@ -111,7 +116,8 @@ class APIv3Server:
 
         # Setup all routes
         self._setup_routes()
-        self._setup_websockets()
+        if HAS_WEBSOCKETS:
+            self._setup_websockets()
 
         print(f"[API v3] Initialized with {len(self._get_all_routes())} endpoints")
 
@@ -209,11 +215,15 @@ class APIv3Server:
             self.ws_clients.append(ws)
             try:
                 while True:
-                    # Keep connection alive
-                    data = ws.receive()
-                    if data:
-                        # Echo back for testing
-                        ws.send(json.dumps({'echo': data}))
+                    # Keep connection alive with timeout to prevent CPU spinning
+                    try:
+                        data = ws.receive(timeout=1.0)  # 1 second timeout
+                        if data:
+                            # Echo back for testing
+                            ws.send(json.dumps({'echo': data}))
+                    except:
+                        # Timeout or error - sleep briefly to prevent tight loop
+                        time.sleep(0.1)
             except:
                 pass
             finally:
@@ -1129,7 +1139,7 @@ class APIv3Server:
         @self.app.route('/api/v3/attacks/queue', methods=['GET'])
         @self._require_auth
         def get_attack_queue():
-            """Get attack queue"""
+            """Get pending attack queue"""
             try:
                 session = get_session()
                 try:
@@ -1144,6 +1154,47 @@ class APIv3Server:
                             'status': item.status,
                             'created_at': item.created_at.isoformat() if item.created_at else None
                         })
+                    return self._success_response(data={'queue': items, 'count': len(items)})
+                finally:
+                    session.close()
+            except Exception as e:
+                return self._error_response(str(e), 'QUEUE_ERROR')
+
+        @self.app.route('/api/v3/attacks/queue/all', methods=['GET'])
+        @self._require_auth
+        def get_all_attack_queue():
+            """Get all attack queue items (all statuses)"""
+            try:
+                session = get_session()
+                try:
+                    # Get all queue items sorted by priority and time
+                    queue_items = session.query(AttackQueue).order_by(
+                        AttackQueue.priority.desc(),
+                        AttackQueue.added_at.desc()
+                    ).all()
+
+                    items = []
+                    for item in queue_items:
+                        # Get network info
+                        network = session.query(Network).filter_by(id=item.network_id).first()
+
+                        items.append({
+                            'id': item.id,
+                            'network_id': item.network_id,
+                            'network': {
+                                'bssid': network.bssid if network else 'Unknown',
+                                'ssid': network.ssid if network else None,
+                            },
+                            'attack_type': item.attack_type,
+                            'priority': item.priority,
+                            'status': item.status,
+                            'added_at': item.added_at.isoformat() if item.added_at else None,
+                            'started_at': item.started_at.isoformat() if item.started_at else None,
+                            'completed_at': item.completed_at.isoformat() if item.completed_at else None,
+                            'success': item.success,
+                            'error_message': item.error_message
+                        })
+
                     return self._success_response(data={'queue': items, 'count': len(items)})
                 finally:
                     session.close()

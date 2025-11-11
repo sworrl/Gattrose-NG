@@ -12,16 +12,11 @@ ExecStart=/opt/gattrose-ng/.venv/bin/python /opt/gattrose-ng/src/services/orches
 Restart=always
 RestartSec=10
 
-# Security
-PrivateTmp=true
-NoNewPrivileges=false
-ProtectSystem=strict
-ProtectHome=false
-ReadWritePaths=/opt/gattrose-ng/data /tmp
-
-# Capabilities needed for wireless operations
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+# CPU and resource limits
+CPUQuota=25%
+Nice=10
+MemoryMax=512M
+TasksMax=50
 
 [Install]
 WantedBy=multi-user.target
