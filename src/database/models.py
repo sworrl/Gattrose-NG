@@ -548,6 +548,207 @@ class CurrentScanClient(Base):
         return f"<CurrentScanClient(mac='{self.mac_address}', bssid='{self.bssid}')>"
 
 
+# ============================================================================
+# BLUETOOTH MODELS
+# ============================================================================
+
+class BluetoothDevice(Base):
+    """Discovered Bluetooth device"""
+    __tablename__ = 'bluetooth_devices'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(String(20), unique=True, nullable=False, index=True, default=lambda: generate_serial_number("bt"))
+    mac_address = Column(String(17), unique=True, nullable=False, index=True)
+
+    # Device identification
+    name = Column(String(100), nullable=True, index=True)
+    local_name = Column(String(100), nullable=True)  # Advertised local name
+
+    # Device classification
+    device_type = Column(String(50), nullable=True)  # phone, headphones, computer, iot, etc.
+    appearance = Column(Integer, nullable=True)  # BLE appearance value
+    manufacturer_id = Column(Integer, nullable=True)  # Company identifier
+    manufacturer_name = Column(String(100), nullable=True)
+
+    # Connection info
+    is_connectable = Column(Boolean, default=True)
+    is_paired = Column(Boolean, default=False)
+    is_bonded = Column(Boolean, default=False)
+    address_type = Column(String(20), nullable=True)  # public, random, public-identity, random-static
+
+    # Signal strength
+    rssi = Column(Integer, nullable=True)  # Last seen RSSI
+    max_rssi = Column(Integer, nullable=True)
+    min_rssi = Column(Integer, nullable=True)
+    tx_power = Column(Integer, nullable=True)  # Advertised TX power
+
+    # Advertising data
+    manufacturer_data = Column(Text, nullable=True)  # JSON hex data
+    service_uuids = Column(Text, nullable=True)  # JSON array of advertised UUIDs
+    service_data = Column(Text, nullable=True)  # JSON service data
+
+    # GATT interrogation status
+    is_interrogated = Column(Boolean, default=False)
+    interrogation_time = Column(DateTime, nullable=True)
+    services_count = Column(Integer, nullable=True)
+    characteristics_count = Column(Integer, nullable=True)
+
+    # Location
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    # Timestamps
+    first_seen = Column(DateTime, nullable=False, default=datetime.utcnow)
+    last_seen = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Metadata
+    notes = Column(Text, nullable=True)
+
+    # Relationships
+    services = relationship("BluetoothService", back_populates="device", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<BluetoothDevice(mac='{self.mac_address}', name='{self.name}')>"
+
+
+class BluetoothService(Base):
+    """GATT Service discovered on a Bluetooth device"""
+    __tablename__ = 'bluetooth_services'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(String(20), unique=True, nullable=False, index=True, default=lambda: generate_serial_number("bs"))
+    device_id = Column(Integer, ForeignKey('bluetooth_devices.id'), nullable=False, index=True)
+
+    # Service identification
+    uuid = Column(String(36), nullable=False, index=True)  # Full UUID
+    uuid_short = Column(String(8), nullable=True)  # Short form (0x1800)
+    name = Column(String(100), nullable=True)  # Human-readable name
+
+    # Service properties
+    is_primary = Column(Boolean, default=True)
+    handle_start = Column(Integer, nullable=True)
+    handle_end = Column(Integer, nullable=True)
+
+    # Timestamps
+    discovered_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationships
+    device = relationship("BluetoothDevice", back_populates="services")
+    characteristics = relationship("BluetoothCharacteristic", back_populates="service", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<BluetoothService(uuid='{self.uuid}', name='{self.name}')>"
+
+
+class BluetoothCharacteristic(Base):
+    """GATT Characteristic within a Bluetooth service"""
+    __tablename__ = 'bluetooth_characteristics'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(String(20), unique=True, nullable=False, index=True, default=lambda: generate_serial_number("bc"))
+    service_id = Column(Integer, ForeignKey('bluetooth_services.id'), nullable=False, index=True)
+
+    # Characteristic identification
+    uuid = Column(String(36), nullable=False, index=True)
+    uuid_short = Column(String(8), nullable=True)
+    name = Column(String(100), nullable=True)
+    handle = Column(Integer, nullable=True)
+
+    # Properties (bitmap as string for readability)
+    properties = Column(String(100), nullable=True)  # "read,write,notify" etc.
+    properties_raw = Column(Integer, nullable=True)  # Raw bitmap
+
+    # Permissions
+    can_read = Column(Boolean, default=False)
+    can_write = Column(Boolean, default=False)
+    can_write_no_response = Column(Boolean, default=False)
+    can_notify = Column(Boolean, default=False)
+    can_indicate = Column(Boolean, default=False)
+
+    # Value storage
+    last_value = Column(Text, nullable=True)  # Hex-encoded value
+    last_value_decoded = Column(Text, nullable=True)  # Attempted decode (UTF-8, int, etc.)
+    last_read_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    discovered_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationships
+    service = relationship("BluetoothService", back_populates="characteristics")
+    descriptors = relationship("BluetoothDescriptor", back_populates="characteristic", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<BluetoothCharacteristic(uuid='{self.uuid}', name='{self.name}', props='{self.properties}')>"
+
+
+class BluetoothDescriptor(Base):
+    """GATT Descriptor within a Bluetooth characteristic"""
+    __tablename__ = 'bluetooth_descriptors'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(String(20), unique=True, nullable=False, index=True, default=lambda: generate_serial_number("bd"))
+    characteristic_id = Column(Integer, ForeignKey('bluetooth_characteristics.id'), nullable=False, index=True)
+
+    # Descriptor identification
+    uuid = Column(String(36), nullable=False, index=True)
+    uuid_short = Column(String(8), nullable=True)
+    name = Column(String(100), nullable=True)
+    handle = Column(Integer, nullable=True)
+
+    # Value
+    value = Column(Text, nullable=True)  # Hex-encoded
+    value_decoded = Column(Text, nullable=True)
+    last_read_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    discovered_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationship
+    characteristic = relationship("BluetoothCharacteristic", back_populates="descriptors")
+
+    def __repr__(self):
+        return f"<BluetoothDescriptor(uuid='{self.uuid}', name='{self.name}')>"
+
+
+class BluetoothInterrogation(Base):
+    """Log of Bluetooth device interrogation sessions"""
+    __tablename__ = 'bluetooth_interrogations'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(String(20), unique=True, nullable=False, index=True, default=lambda: generate_serial_number("bi"))
+    device_id = Column(Integer, ForeignKey('bluetooth_devices.id'), nullable=False, index=True)
+
+    # Session info
+    started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(String(20), nullable=False, default='in_progress')  # in_progress, completed, failed
+
+    # Results
+    services_found = Column(Integer, default=0)
+    characteristics_found = Column(Integer, default=0)
+    descriptors_found = Column(Integer, default=0)
+    values_read = Column(Integer, default=0)
+
+    # Full interrogation data as JSON for export
+    full_data = Column(Text, nullable=True)  # Complete JSON dump
+
+    # Error tracking
+    error_message = Column(Text, nullable=True)
+
+    def __repr__(self):
+        return f"<BluetoothInterrogation(device_id={self.device_id}, status='{self.status}')>"
+
+
+# Bluetooth indexes
+Index('idx_bt_device_mac', BluetoothDevice.mac_address)
+Index('idx_bt_device_name', BluetoothDevice.name)
+Index('idx_bt_device_last_seen', BluetoothDevice.last_seen)
+Index('idx_bt_service_uuid', BluetoothService.uuid)
+Index('idx_bt_char_uuid', BluetoothCharacteristic.uuid)
+
+
 class TriangulationNode(Base):
     """Triangulation Node - Remote scanner for distributed triangulation
 

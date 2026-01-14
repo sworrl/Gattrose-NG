@@ -1,0 +1,17 @@
+============================================================
+BW16 Original Firmware Capture
+Captured: 2026-01-13 09:14:34
+============================================================
+
+=== RAW TEXT OUTPUT ===
+#calibration_ok:[2:19:11] 
+DEBUG: Iniciando
+interface 0 is initialized
+interface 1 is initialized
+
+Initializing WIFI ...
+WIFI initialized
+
+
+=== HEX DUMP ===
+0d2363616c6962726174696f6e5f6f6b3a5b323a31393a31315d200a0d44454255473a20496e696369616e646f0a696e74657266616365203020697320696e697469616c697a65640a0d696e74657266616365203120697320696e697469616c697a65640a0d0a0d0d496e697469616c697a696e672057494649202e2e2e0a0d0d5749464920696e697469616c697a65640a0d

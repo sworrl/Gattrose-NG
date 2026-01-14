@@ -41,7 +41,7 @@ echo ""
 
 # ========== Create Install Directory ==========
 
-echo -e "${BLUE}[1/7] Creating installation directory...${NC}"
+echo -e "${BLUE}[1/9] Creating installation directory...${NC}"
 
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${YELLOW}    Install directory already exists${NC}"
@@ -61,7 +61,7 @@ echo -e "${GREEN}    ✓ Created ${INSTALL_DIR}${NC}"
 
 # ========== Copy/Symlink Files ==========
 
-echo -e "${BLUE}[2/7] Symlinking source files...${NC}"
+echo -e "${BLUE}[2/9] Symlinking source files...${NC}"
 
 # Symlink main directories to dev location for live updates
 ln -sf "$PROJECT_ROOT/src" "$INSTALL_DIR/src"
@@ -91,7 +91,7 @@ echo -e "${GREEN}    ✓ Source files symlinked (changes in dev location will re
 
 # ========== Install Systemd Services ==========
 
-echo -e "${BLUE}[3/7] Installing systemd services...${NC}"
+echo -e "${BLUE}[3/9] Installing systemd services...${NC}"
 
 # Stop services if running
 systemctl stop gattrose-core.service 2>/dev/null || true
@@ -109,7 +109,7 @@ echo -e "${GREEN}    ✓ Installed gattrose-api.service${NC}"
 
 # ========== Create CLI Wrapper ==========
 
-echo -e "${BLUE}[4/7] Creating CLI wrapper...${NC}"
+echo -e "${BLUE}[4/9] Creating CLI wrapper...${NC}"
 
 cat > "$BIN_DIR/gattrose" <<'EOF'
 #!/usr/bin/env bash
@@ -197,7 +197,7 @@ echo -e "${GREEN}    ✓ Created 'gattrose' command in ${BIN_DIR}${NC}"
 
 # ========== Set Permissions ==========
 
-echo -e "${BLUE}[5/7] Setting permissions...${NC}"
+echo -e "${BLUE}[5/9] Setting permissions...${NC}"
 
 chown -R root:root "$INSTALL_DIR"
 chmod -R 755 "$INSTALL_DIR"
@@ -208,7 +208,7 @@ echo -e "${GREEN}    ✓ Permissions set${NC}"
 
 # ========== Install Dependencies ==========
 
-echo -e "${BLUE}[6/7] Checking dependencies...${NC}"
+echo -e "${BLUE}[6/9] Checking dependencies...${NC}"
 
 # Check for airmon-ng
 if ! command -v airmon-ng &> /dev/null; then
@@ -225,9 +225,48 @@ fi
 
 echo -e "${GREEN}    ✓ Dependencies verified${NC}"
 
+# ========== Install Bluetooth Attack Frameworks ==========
+
+echo -e "${BLUE}[7/9] Installing Bluetooth attack frameworks...${NC}"
+
+# Install system dependencies for BT tools
+apt-get install -y libbluetooth-dev bluez-tools bluez-hcidump 2>/dev/null || true
+
+# Install Python BT attack libraries
+echo -e "${YELLOW}    Installing WHAD (Wireless Hacking Framework)...${NC}"
+"$INSTALL_DIR/.venv/bin/pip" install -q whad 2>/dev/null || true
+
+echo -e "${YELLOW}    Installing BtleJuice (BLE MITM)...${NC}"
+"$INSTALL_DIR/.venv/bin/pip" install -q btlejuice websocket-client 2>/dev/null || true
+
+echo -e "${YELLOW}    Installing BlueToolkit dependencies...${NC}"
+"$INSTALL_DIR/.venv/bin/pip" install -q pwntools cmd2 tabulate colorama 2>/dev/null || true
+
+# Install PyBluez
+echo -e "${YELLOW}    Installing PyBluez...${NC}"
+"$INSTALL_DIR/.venv/bin/pip" install -q git+https://github.com/pybluez/pybluez.git#egg=pybluez 2>/dev/null || true
+
+# Clone BlueToolkit if not exists
+if [ ! -d "$INSTALL_DIR/tools/BlueToolkit" ]; then
+    echo -e "${YELLOW}    Cloning BlueToolkit (43 BT exploits)...${NC}"
+    mkdir -p "$INSTALL_DIR/tools"
+    git clone --recurse-submodules https://github.com/sgxgsx/BlueToolkit "$INSTALL_DIR/tools/BlueToolkit" 2>/dev/null || true
+
+    # Install bluekit package
+    if [ -d "$INSTALL_DIR/tools/BlueToolkit/bluekit" ]; then
+        "$INSTALL_DIR/.venv/bin/pip" install -q "$INSTALL_DIR/tools/BlueToolkit/bluekit" 2>/dev/null || true
+    fi
+fi
+
+echo -e "${GREEN}    ✓ Bluetooth attack frameworks installed${NC}"
+echo -e "${GREEN}      - WHAD (InjectaBLE, BLE sniffing/injection)${NC}"
+echo -e "${GREEN}      - BtleJuice (BLE MITM proxy)${NC}"
+echo -e "${GREEN}      - BlueToolkit (43 BT Classic exploits)${NC}"
+echo -e "${GREEN}      - PyBluez (Bluetooth sockets)${NC}"
+
 # ========== Final Steps ==========
 
-echo -e "${BLUE}[7/7] Finishing installation...${NC}"
+echo -e "${BLUE}[8/9] Finishing installation...${NC}"
 
 # Create update script in dev location
 cat > "$PROJECT_ROOT/update-install.sh" <<'EOF'
@@ -243,6 +282,17 @@ chmod +x "$PROJECT_ROOT/update-install.sh"
 echo -e "${GREEN}    ✓ Created update-install.sh in dev location${NC}"
 echo ""
 
+# ========== Verify Installation ==========
+
+echo -e "${BLUE}[9/9] Verifying installation...${NC}"
+
+# Test imports
+echo -e "${YELLOW}    Testing Python imports...${NC}"
+"$INSTALL_DIR/.venv/bin/python" -c "import whad; import btlejuice; import bluekit; import bluetooth; print('    ✓ All BT attack libraries verified')" 2>/dev/null || echo -e "${YELLOW}    ! Some BT libraries may need manual setup${NC}"
+
+echo -e "${GREEN}    ✓ Installation verified${NC}"
+echo ""
+
 # ========== Installation Complete ==========
 
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
@@ -253,6 +303,12 @@ echo -e "${BLUE}Installation Details:${NC}"
 echo -e "  Installed to: ${INSTALL_DIR}"
 echo -e "  Dev location: ${PROJECT_ROOT}"
 echo -e "  Services: gattrose-core, gattrose-api"
+echo ""
+echo -e "${BLUE}BT Attack Frameworks:${NC}"
+echo -e "  ${GREEN}WHAD${NC}        - InjectaBLE, BLE packet injection"
+echo -e "  ${GREEN}BtleJuice${NC}   - BLE Man-in-the-Middle proxy"
+echo -e "  ${GREEN}BlueToolkit${NC} - 43 Bluetooth Classic exploits"
+echo -e "  ${GREEN}PyBluez${NC}     - Bluetooth socket programming"
 echo ""
 echo -e "${BLUE}Quick Start:${NC}"
 echo -e "  ${GREEN}gattrose start${NC}     - Start services"

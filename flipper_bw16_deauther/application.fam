@@ -1,0 +1,16 @@
+App(
+    appid="gattrose_ng",
+    name="Gattrose-NG",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gattrose_ng_app",
+    requires=["gui"],
+    stack_size=8 * 1024,
+    fap_icon="gattrose_10x10.png",
+    fap_category="GPIO",
+    fap_version="4.0.0",
+    fap_description="Full WiFi audit suite (deauth, PMKID, karma, jammer, evil twin, BLE spam) using BW16 RTL8720DN",
+    fap_author="Gattrose-NG",
+    fap_weburl="https://github.com/gattrose-ng",
+    sources=["gattrose_ng.c"],
+    fap_libs=[],
+)

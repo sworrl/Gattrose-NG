@@ -1,24 +1,14 @@
-#!/usr/bin/env python3
-"""
-Gattrose-NG Background Daemon
-Runs WiFi/Bluetooth/SDR scanning in the background without GUI
-Can be run as a systemd service for 24/7 operation
-"""
-
 import sys
 import time
 import signal
 import os
 from pathlib import Path
 
-# Set project root
-PROJECT_ROOT = Path(__file__).parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
 # Import Gattrose modules
 from src.utils.config_db import DBConfig
 from src.database.manager import DatabaseManager
 from src.tools.wifi_monitor import WiFiMonitorManager
+from src.utils.logger import main_logger
 
 
 class GattroseDaemon:
@@ -36,13 +26,13 @@ class GattroseDaemon:
 
     def signal_handler(self, signum, frame):
         """Handle shutdown signals"""
-        print(f"\n[*] Received signal {signum}, shutting down gracefully...")
+        main_logger.info(f"Received signal {signum}, shutting down gracefully...")
         self.stop()
         sys.exit(0)
 
     def start(self):
         """Start daemon"""
-        print("[*] Starting Gattrose-NG daemon...")
+        main_logger.info("Starting Gattrose-NG daemon...")
 
         self.running = True
 
@@ -58,8 +48,8 @@ class GattroseDaemon:
         if self.config.get('sdr.enabled', True):
             self.start_sdr_scanning()
 
-        print("[+] Daemon started successfully")
-        print("[*] Press Ctrl+C to stop")
+        main_logger.info("Daemon started successfully")
+        main_logger.info("Press Ctrl+C to stop")
 
         # Main loop
         try:
@@ -67,32 +57,32 @@ class GattroseDaemon:
                 time.sleep(1)
 
         except KeyboardInterrupt:
-            print("\n[*] Interrupted, shutting down...")
+            main_logger.info("Interrupted, shutting down...")
 
         self.stop()
 
     def stop(self):
         """Stop daemon"""
-        print("[*] Stopping Gattrose-NG daemon...")
+        main_logger.info("Stopping Gattrose-NG daemon...")
 
         self.running = False
 
         # Stop all scanners
         for scanner_type, scanner in self.scanners.items():
-            print(f"[*] Stopping {scanner_type} scanner...")
+            main_logger.info(f"Stopping {scanner_type} scanner...")
             try:
                 if hasattr(scanner, 'stop'):
                     scanner.stop()
                 if hasattr(scanner, 'join'):
                     scanner.join(timeout=5)
             except Exception as e:
-                print(f"[!] Error stopping {scanner_type} scanner: {e}")
+                main_logger.exception(f"Error stopping {scanner_type} scanner: {e}")
 
-        print("[+] Daemon stopped")
+        main_logger.info("Daemon stopped")
 
     def start_wifi_scanning(self):
         """Start WiFi scanning in background"""
-        print("[*] Starting WiFi scanning...")
+        main_logger.info("Starting WiFi scanning...")
 
         try:
             # Check for monitor interface
@@ -104,14 +94,14 @@ class GattroseDaemon:
                 managed = [iface for iface in interfaces if 'mon' not in iface.lower()]
 
                 if managed:
-                    print(f"[*] Enabling monitor mode on {managed[0]}...")
+                    main_logger.info(f"Enabling monitor mode on {managed[0]}...")
                     success, monitor_iface, message = WiFiMonitorManager.enable_monitor_mode(managed[0])
 
                     if not success:
-                        print(f"[!] Failed to enable monitor mode: {message}")
+                        main_logger.error(f"Failed to enable monitor mode: {message}")
                         return
 
-            print(f"[+] Using monitor interface: {monitor_iface}")
+            main_logger.info(f"Using monitor interface: {monitor_iface}")
 
             # Start WiFi scanner
             from src.tools.wifi_scanner import WiFiScanner
@@ -128,21 +118,19 @@ class GattroseDaemon:
 
             self.scanners['wifi'] = scanner
 
-            print("[+] WiFi scanning started")
+            main_logger.info("WiFi scanning started")
 
         except Exception as e:
-            print(f"[!] Error starting WiFi scanner: {e}")
-            import traceback
-            traceback.print_exc()
+            main_logger.exception(f"Error starting WiFi scanner: {e}")
 
     def start_bluetooth_scanning(self):
         """Start Bluetooth scanning in background"""
-        print("[*] Bluetooth scanning not yet implemented")
+        main_logger.info("Bluetooth scanning not yet implemented")
         # TODO: Implement Bluetooth scanner
 
     def start_sdr_scanning(self):
         """Start SDR scanning in background"""
-        print("[*] SDR scanning not yet implemented")
+        main_logger.info("SDR scanning not yet implemented")
         # TODO: Implement SDR scanner
 
     def on_ap_discovered(self, ap):
@@ -171,10 +159,10 @@ class GattroseDaemon:
                     session.add(network)
                     session.commit()
 
-                    print(f"[+] Saved new AP: {ap.ssid or '(Hidden)'} [{ap.bssid}]")
+                    main_logger.info(f"Saved new AP: {ap.ssid or '(Hidden)'} [{ap.bssid}]")
 
         except Exception as e:
-            print(f"[!] Error saving AP to database: {e}")
+            main_logger.exception(f"Error saving AP to database: {e}")
 
     def on_ap_updated(self, ap):
         """Handle AP update - update database"""
@@ -200,7 +188,7 @@ class GattroseDaemon:
                     session.commit()
 
         except Exception as e:
-            print(f"[!] Error updating AP in database: {e}")
+            main_logger.exception(f"Error updating AP in database: {e}")
 
     def on_client_discovered(self, client, bssid):
         """Handle new client discovery - save to database"""
@@ -215,15 +203,15 @@ class GattroseDaemon:
 
 def main():
     """Main entry point"""
-    print("="*70)
-    print("GATTROSE-NG BACKGROUND DAEMON")
-    print("="*70)
-    print()
+    main_logger.info("="*70)
+    main_logger.info("GATTROSE-NG BACKGROUND DAEMON")
+    main_logger.info("="*70)
+    main_logger.info("")
 
     # Check if running as root
     if os.geteuid() != 0:
-        print("[!] ERROR: This daemon must be run as root (use sudo)")
-        print("[!] Reason: Monitor mode requires root privileges")
+        main_logger.error("This daemon must be run as root (use sudo)")
+        main_logger.error("Reason: Monitor mode requires root privileges")
         sys.exit(1)
 
     # Create and start daemon

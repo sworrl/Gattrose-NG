@@ -63,6 +63,17 @@ class MappingTab(QWidget):
         self.show_all_check.toggled.connect(lambda: self._log_click(f"Show All: {self.show_all_check.isChecked()}") or self.refresh_map())
         controls_layout.addWidget(self.show_all_check)
 
+        # Snap to location buttons
+        self.snap_data_btn = QPushButton("📍 Snap to Data")
+        self.snap_data_btn.setToolTip("Zoom to fit all visible APs")
+        self.snap_data_btn.clicked.connect(self._snap_to_data)
+        controls_layout.addWidget(self.snap_data_btn)
+
+        self.snap_gps_btn = QPushButton("🎯 Snap to GPS")
+        self.snap_gps_btn.setToolTip("Center on current GPS location")
+        self.snap_gps_btn.clicked.connect(self._snap_to_gps)
+        controls_layout.addWidget(self.snap_gps_btn)
+
         # Stats label
         self.stats_label = QLabel("No APs displayed")
         controls_layout.addWidget(self.stats_label)
@@ -100,6 +111,35 @@ class MappingTab(QWidget):
         else:
             self.update_markers()
 
+    def _snap_to_data(self):
+        """Zoom map to fit all visible data - user triggered only"""
+        if not self.page_loaded:
+            return
+        js_code = """
+        try {
+            if (typeof apMarkersLayer !== 'undefined') {
+                var bounds = apMarkersLayer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, {padding: [50, 50], maxZoom: 16});
+                }
+            }
+        } catch(e) { console.error('Snap to data error:', e); }
+        """
+        self.web_view.page().runJavaScript(js_code)
+
+    def _snap_to_gps(self):
+        """Center map on current GPS location - user triggered only"""
+        if not self.page_loaded:
+            return
+        gps = self._get_current_gps_location()
+        if gps and gps.get('lat') and gps.get('lon'):
+            js_code = f"""
+            try {{
+                map.setView([{gps['lat']}, {gps['lon']}], 17);
+            }} catch(e) {{ console.error('Snap to GPS error:', e); }}
+            """
+            self.web_view.page().runJavaScript(js_code)
+
     def update_markers(self):
         """Update markers incrementally without reloading HTML"""
         if not self.map_initialized or not self.page_loaded:
@@ -120,15 +160,19 @@ class MappingTab(QWidget):
 
             two_hours_ago = datetime.utcnow() - timedelta(hours=2)
 
-            # Get recent observations (last 2 hours) - full resolution
-            recent_obs = session.query(NetworkObservation).filter(
+            # Get recent observations with network info for colored display
+            recent_obs = session.query(NetworkObservation, Network).join(
+                Network, NetworkObservation.network_id == Network.id
+            ).filter(
                 NetworkObservation.latitude.isnot(None),
                 NetworkObservation.longitude.isnot(None),
                 NetworkObservation.timestamp >= two_hours_ago
             ).order_by(NetworkObservation.timestamp.asc()).all()
 
-            # Get older observations - decimated (every 10th point to show general path)
-            older_obs = session.query(NetworkObservation).filter(
+            # Get older observations - decimated
+            older_obs = session.query(NetworkObservation, Network).join(
+                Network, NetworkObservation.network_id == Network.id
+            ).filter(
                 NetworkObservation.latitude.isnot(None),
                 NetworkObservation.longitude.isnot(None),
                 NetworkObservation.timestamp < two_hours_ago
@@ -140,15 +184,30 @@ class MappingTab(QWidget):
             # Combine: decimated old + full recent
             all_obs = decimated_older + recent_obs
 
-            track_points = [
-                {
+            # Build color map for networks (consistent colors per network)
+            network_colors = {}
+            color_palette = [
+                '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
+                '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f'
+            ]
+
+            track_points = []
+            for obs, network in all_obs:
+                # Assign color to network if not already assigned
+                if network.id not in network_colors:
+                    network_colors[network.id] = color_palette[len(network_colors) % len(color_palette)]
+
+                track_points.append({
                     'lat': obs.latitude,
                     'lon': obs.longitude,
                     'timestamp': obs.timestamp.isoformat() if obs.timestamp else None,
-                    'gps_source': obs.gps_source or 'unknown'
-                }
-                for obs in all_obs
-            ]
+                    'gps_source': obs.gps_source or 'unknown',
+                    'network_id': network.id,
+                    'bssid': network.bssid,
+                    'ssid': network.ssid or '(hidden)',
+                    'color': network_colors[network.id]
+                })
             # Get all networks with GPS data
             if self.show_all_check.isChecked():
                 # Show all networks that have at least one location
@@ -373,7 +432,8 @@ class MappingTab(QWidget):
             maxClusterRadius: 50,  // Cluster networks within 50 pixels
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
+            zoomToBoundsOnClick: false,  // Disabled - no auto zoom
+            animate: false,  // Disable animations that might cause issues
             iconCreateFunction: function(cluster) {{
                 var childCount = cluster.getChildCount();
                 var c = ' marker-cluster-';
@@ -523,11 +583,8 @@ class MappingTab(QWidget):
                 }});
             }});
 
-            // Fit bounds to show all markers if we have any
-            if (markers.length > 0) {{
-                var bounds = markers.map(m => [m.lat, m.lon]);
-                map.fitBounds(bounds, {{padding: [50, 50]}});
-            }}
+            // NO auto-zoom - map is fully freeform
+            // User can click "Snap to Data" or "Snap to GPS" buttons to center
         }}
 
         // Function to update track points (called from Qt)
@@ -540,53 +597,62 @@ class MappingTab(QWidget):
             }}
 
             if (trackPoints.length > 0) {{
-                // Create polyline for user track
-                var trackCoords = trackPoints.map(p => [p.lat, p.lon]);
-                var trackPolyline = L.polyline(trackCoords, {{
-                    color: '#0088ff',
-                    weight: 3,
-                    opacity: 0.7,
-                    smoothFactor: 1
-                }});
-                trackLayer.addLayer(trackPolyline);
-
-                // Add heatmap layer for user movement density
-                var heatData = trackPoints.map(p => [p.lat, p.lon, 1.0]);
-                heatmapLayer = L.heatLayer(heatData, {{
-                    radius: 25,
-                    blur: 35,
-                    maxZoom: 17,
-                    max: 1.0,
-                    gradient: {{
-                        0.0: 'blue',
-                        0.5: 'yellow',
-                        1.0: 'red'
-                    }}
-                }}).addTo(map);
-
-                // Add small markers for track points (clickable)
+                // Group points by network for per-network heatmaps
+                var networkGroups = {{}};
                 trackPoints.forEach(function(point) {{
-                    var trackMarker = L.circleMarker([point.lat, point.lon], {{
-                        radius: 3,
-                        fillColor: '#0088ff',
-                        color: '#fff',
-                        weight: 1,
-                        opacity: 0.8,
-                        fillOpacity: 0.6,
-                        className: 'track-point'
-                    }});
-
-                    // Popup for track point
-                    trackMarker.bindPopup(`
-                        <b>Track Point</b><br>
-                        Time: ${{point.timestamp || 'Unknown'}}<br>
-                        GPS: ${{point.gps_source}}<br>
-                        Lat: ${{point.lat.toFixed(6)}}<br>
-                        Lon: ${{point.lon.toFixed(6)}}
-                    `);
-
-                    trackLayer.addLayer(trackMarker);
+                    var netId = point.network_id || 'unknown';
+                    if (!networkGroups[netId]) {{
+                        networkGroups[netId] = {{
+                            points: [],
+                            color: point.color || '#0088ff',
+                            ssid: point.ssid || 'Unknown',
+                            bssid: point.bssid || ''
+                        }};
+                    }}
+                    networkGroups[netId].points.push(point);
                 }});
+
+                // Create colored markers for each network's observations
+                Object.keys(networkGroups).forEach(function(netId) {{
+                    var group = networkGroups[netId];
+                    group.points.forEach(function(point) {{
+                        var trackMarker = L.circleMarker([point.lat, point.lon], {{
+                            radius: 4,
+                            fillColor: group.color,
+                            color: '#fff',
+                            weight: 1,
+                            opacity: 0.9,
+                            fillOpacity: 0.7
+                        }});
+
+                        trackMarker.bindPopup(`
+                            <b>${{group.ssid}}</b><br>
+                            BSSID: ${{group.bssid}}<br>
+                            Time: ${{point.timestamp || 'Unknown'}}<br>
+                            GPS: ${{point.gps_source}}<br>
+                            Lat: ${{point.lat.toFixed(6)}}<br>
+                            Lon: ${{point.lon.toFixed(6)}}
+                        `);
+
+                        trackLayer.addLayer(trackMarker);
+                    }});
+                }});
+
+                // Optional: Add legend showing network colors (first 10)
+                var legendHtml = '<div style="background:rgba(0,0,0,0.7);padding:5px;border-radius:3px;color:#fff;font-size:10px;">';
+                legendHtml += '<b>Networks:</b><br>';
+                var count = 0;
+                Object.keys(networkGroups).forEach(function(netId) {{
+                    if (count < 10) {{
+                        var g = networkGroups[netId];
+                        legendHtml += '<span style="color:' + g.color + '">●</span> ' + g.ssid + '<br>';
+                        count++;
+                    }}
+                }});
+                if (Object.keys(networkGroups).length > 10) {{
+                    legendHtml += '... and ' + (Object.keys(networkGroups).length - 10) + ' more';
+                }}
+                legendHtml += '</div>';
             }}
         }}
 

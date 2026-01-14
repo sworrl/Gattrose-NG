@@ -398,3 +398,132 @@ class TriangulationService:
             session.close()
 
         return updated_count
+
+    @staticmethod
+    def detect_location_clusters(observations, min_cluster_size=2, cluster_radius_meters=500.0):
+        """
+        Detect distinct geographic clusters of observations.
+        Used to identify when an AP has been "moved" (or more likely, user moved to a new area).
+        """
+        if not observations:
+            return []
+
+        # Sort by timestamp
+        sorted_obs = sorted(observations, key=lambda x: x[3])
+        clusters = []
+        used = set()
+
+        for i, obs in enumerate(sorted_obs):
+            if i in used:
+                continue
+
+            cluster = [obs]
+            used.add(i)
+
+            for j, other in enumerate(sorted_obs):
+                if j in used:
+                    continue
+
+                dist = TriangulationService.calculate_distance(obs[0], obs[1], other[0], other[1])
+                if dist <= cluster_radius_meters:
+                    cluster.append(other)
+                    used.add(j)
+
+            if len(cluster) >= min_cluster_size:
+                clusters.append(cluster)
+
+        return clusters
+
+    @staticmethod
+    def relocate_ap_if_needed(network_id, new_location_threshold=1000.0, min_new_observations=2):
+        """
+        Check if AP should be relocated and update if so.
+        Handles scenario where user moves to a new area and old AP coords are wrong.
+        """
+        from ..database.models import get_session, Network, NetworkObservation
+        from sqlalchemy import desc
+
+        session = get_session()
+        try:
+            network = session.query(Network).filter_by(id=network_id).first()
+            if not network or not network.latitude or not network.longitude:
+                return False
+
+            current_lat = network.latitude
+            current_lon = network.longitude
+
+            # Get recent observations with GPS
+            recent_obs = session.query(NetworkObservation).filter(
+                NetworkObservation.network_id == network_id,
+                NetworkObservation.latitude.isnot(None),
+                NetworkObservation.longitude.isnot(None)
+            ).order_by(desc(NetworkObservation.timestamp)).limit(20).all()
+
+            if len(recent_obs) < min_new_observations:
+                return False
+
+            # Check if recent observations are far from current stored location
+            new_location_obs = []
+            for obs in recent_obs:
+                dist = TriangulationService.calculate_distance(
+                    current_lat, current_lon, obs.latitude, obs.longitude
+                )
+                if dist > new_location_threshold:
+                    new_location_obs.append((obs.latitude, obs.longitude, obs.signal_strength or -70, obs.timestamp))
+
+            # If we have enough observations at a "new" location, trigger relocation
+            if len(new_location_obs) >= min_new_observations:
+                clusters = TriangulationService.detect_location_clusters(new_location_obs)
+
+                if clusters:
+                    largest_cluster = max(clusters, key=len)
+                    obs_for_centroid = [(lat, lon, sig) for lat, lon, sig, _ in largest_cluster]
+                    new_lat, new_lon, confidence = TriangulationService.weighted_centroid(obs_for_centroid)
+
+                    dist_moved = TriangulationService.calculate_distance(current_lat, current_lon, new_lat, new_lon)
+
+                    old_lat = network.latitude
+                    old_lon = network.longitude
+                    network.latitude = new_lat
+                    network.longitude = new_lon
+                    session.commit()
+                    print(f"[Triangulation] RELOCATED AP {network.bssid}: "
+                          f"({old_lat:.4f}, {old_lon:.4f}) -> ({new_lat:.4f}, {new_lon:.4f})")
+                    print(f"[Triangulation] Reason: {len(largest_cluster)} observations at new location ({dist_moved/1000:.1f}km away)")
+                    return True
+
+            return False
+        except Exception as e:
+            session.rollback()
+            print(f"[Triangulation] Error in relocate check: {e}")
+            return False
+        finally:
+            session.close()
+
+    @staticmethod
+    def check_and_relocate_all_aps(new_location_threshold=1000.0, min_new_observations=2):
+        """Check all APs for relocation and update as needed."""
+        from ..database.models import get_session, Network
+
+        session = get_session()
+        relocated_count = 0
+
+        try:
+            networks = session.query(Network).filter(
+                Network.latitude.isnot(None),
+                Network.longitude.isnot(None)
+            ).all()
+
+            for network in networks:
+                if TriangulationService.relocate_ap_if_needed(
+                    network.id, new_location_threshold, min_new_observations
+                ):
+                    relocated_count += 1
+
+            if relocated_count > 0:
+                print(f"[Triangulation] Relocated {relocated_count} APs to new locations")
+
+        finally:
+            session.close()
+
+        return relocated_count

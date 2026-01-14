@@ -699,6 +699,66 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 See [LICENSE](LICENSE) for full license text.
 
+---
+
+## BW16 Firmware + Flipper Zero App (v4.0)
+
+Gattrose-NG also includes a portable WiFi audit module using the **BW16 (RTL8720DN)** with **Flipper Zero** control.
+
+### BW16 Features
+- **Deauthentication** - Targeted/broadcast deauth with client detection
+- **Evil Twin AP** - 7 captive portal templates (Google, Facebook, Amazon, Apple, Netflix, Microsoft)
+- **PMKID Capture** - Capture from EAPOL Message 1 (hashcat format)
+- **Handshake Capture** - 4-way handshake during deauth
+- **Karma Attack** - Auto-respond to probe requests
+- **Probe Logger** - Log SSIDs devices search for
+- **WiFi Jammer** - Continuous deauth all channels
+- **Rogue AP Detector** - Alert on new/changed APs
+- **BLE Spam** - FastPair (Android), SwiftPair (Windows), AirTag payloads
+- **BLE Scanner** - Track devices with RSSI history
+
+### Wiring (Flipper to BW16)
+
+| Flipper | BW16 |
+|---------|------|
+| TX (13) | PA14 |
+| RX (14) | PA13 |
+| GND | GND |
+| 3.3V | 3V3 |
+
+### Building
+
+**Firmware:**
+```bash
+cd bw16_firmware/gattrose_ng
+arduino-cli compile --fqbn realtek:AmebaD:Ai-Thinker_BW16 .
+arduino-cli upload --fqbn realtek:AmebaD:Ai-Thinker_BW16 -p /dev/ttyUSB0 .
+```
+
+**Flipper App:**
+```bash
+cd flipper_bw16_deauther
+ufbt
+# Copy dist/gattrose_ng.fap to Flipper's apps/GPIO/
+```
+
+### Directory Structure
+```
+bw16_firmware/
+└── gattrose_ng/           # Main firmware source
+    ├── gattrose_ng.ino
+    ├── wifi_cust_tx.cpp/h
+    ├── dns.cpp/h
+    └── portals/           # 7 portal templates
+
+flipper_bw16_deauther/
+├── gattrose_ng.c          # Flipper app
+├── application.fam
+└── gattrose_10x10.png
+```
+
+---
+
 ## 🙏 Acknowledgments
 
 - **aircrack-ng** team for the excellent wireless tools

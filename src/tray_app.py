@@ -165,6 +165,10 @@ class GattroseTrayApp:
         self.stats_action.setEnabled(False)
         self.menu.addAction(self.stats_action)
 
+        self.gps_status_action = QAction("📍 GPS: Searching...", self.menu)
+        self.gps_status_action.setEnabled(False)
+        self.menu.addAction(self.gps_status_action)
+
         self.menu.addSeparator()
 
         # GUI controls (dynamic based on state)
@@ -393,6 +397,43 @@ class GattroseTrayApp:
                     action.setToolTip("\n".join(tooltip_parts))
             else:
                 action.setText(f"{svc_name.title()}: Unknown")
+
+        # Update GPS/Phone status
+        gps_svc = services.get('gps', {})
+        gps_running = gps_svc.get('running', False)
+        gps_meta = gps_svc.get('metadata', {})
+        has_location = gps_meta.get('has_location', False)
+        gps_source = gps_meta.get('source', 'none')
+
+        if has_location:
+            # We have a GPS fix
+            source_icon = {
+                'gpsd': '🛰️',
+                'phone-usb': '📱',
+                'phone-bt': '📱',
+                'iphone': '📱',
+                'android': '📱',
+                'manual': '📌',
+                'geoip': '🌍'
+            }.get(gps_source, '📍')
+
+            accuracy = gps_meta.get('accuracy', 0)
+            if accuracy < 100:
+                acc_str = f"±{accuracy:.0f}m"
+            else:
+                acc_str = f"±{accuracy/1000:.1f}km"
+
+            self.gps_status_action.setText(f"{source_icon} GPS: {gps_source} ({acc_str})")
+            tooltip = (f"Location Source: {gps_source}\n"
+                       f"Accuracy: {acc_str}\n"
+                       f"Fix: {gps_meta.get('fix_quality', 'Unknown')}")
+            self.gps_status_action.setToolTip(tooltip)
+        elif gps_running:
+            self.gps_status_action.setText("📍 GPS: Searching...")
+            self.gps_status_action.setToolTip("GPS service running, waiting for fix")
+        else:
+            self.gps_status_action.setText("📍 GPS: Not Available")
+            self.gps_status_action.setToolTip("No GPS source connected")
 
     def _calculate_health(self, status: dict) -> str:
         """Calculate overall system health"""

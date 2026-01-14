@@ -9,13 +9,15 @@ import hashlib
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, text
 from sqlalchemy.orm import sessionmaker, Session
+from contextlib import contextmanager
 
 from .models import (
     Base, Network, NetworkObservation, Client, Handshake,
     ScanSession, WiGLEImport
 )
+from src.utils.logger import main_logger
 
 
 class DatabaseManager:
@@ -36,10 +38,11 @@ class DatabaseManager:
 
         self.db_path = db_path
         self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
-        self.Session = sessionmaker(bind=self.engine)
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
         # Create tables if they don't exist
         Base.metadata.create_all(self.engine)
+        main_logger.info(f"Database initialized at {self.db_path}")
 
     def _get_data_dir(self) -> Path:
         """Get the data directory for the database"""
@@ -53,9 +56,18 @@ class DatabaseManager:
             # Installed mode: data in user's home directory
             return Path.home() / ".local" / "share" / "gattrose-ng" / "data"
 
+    @contextmanager
     def get_session(self) -> Session:
-        """Get a new database session"""
-        return self.Session()
+        """Provide a transactional scope around a series of operations."""
+        session = self.SessionLocal()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     # ==================== Network Operations ====================
 
@@ -63,7 +75,7 @@ class DatabaseManager:
         """Add a new network to the database"""
         network = Network(**kwargs)
         session.add(network)
-        session.commit()
+        session.flush() # Flush to assign ID, but don't commit yet
         return network
 
     def get_network_by_bssid(self, session: Session, bssid: str) -> Optional[Network]:
@@ -77,12 +89,10 @@ class DatabaseManager:
         if network is None:
             network = Network(bssid=bssid, **kwargs)
             session.add(network)
-            session.commit()
         else:
             # Update last_seen
             network.last_seen = datetime.utcnow()
-            session.commit()
-
+        session.flush() # Flush to assign ID or update
         return network
 
     def search_networks(
@@ -129,12 +139,12 @@ class DatabaseManager:
         """Add a network observation"""
         obs = NetworkObservation(network_id=network_id, **kwargs)
         session.add(obs)
-        session.commit()
+        session.flush() # Flush to assign ID
         return obs
 
     # ==================== WiGLE Import Operations ====================
 
-    def import_wigle_csv(self, session: Session, csv_path: str) -> WiGLEImport:
+    def import_wigle_csv(self, csv_path: str) -> WiGLEImport:
         """
         Import networks from WiGLE CSV export
 
@@ -149,153 +159,148 @@ class DatabaseManager:
         # Calculate file hash
         file_hash = self._calculate_file_hash(csv_path)
 
-        # Check if already imported
-        existing = session.query(WiGLEImport).filter(
-            WiGLEImport.file_hash == file_hash
-        ).first()
+        with self.get_session() as session:
+            # Check if already imported
+            existing = session.query(WiGLEImport).filter(
+                WiGLEImport.file_hash == file_hash
+            ).first()
 
-        if existing:
-            print(f"[!] File already imported at {existing.import_time}")
-            return existing
+            if existing:
+                main_logger.info(f"File already imported at {existing.import_time}")
+                return existing
 
-        # Create import record
-        wigle_import = WiGLEImport(
-            file_path=str(csv_path),
-            file_hash=file_hash
-        )
+            # Create import record
+            wigle_import = WiGLEImport(
+                file_path=str(csv_path),
+                file_hash=file_hash
+            )
 
-        imported = 0
-        updated = 0
-        skipped = 0
+            imported = 0
+            updated = 0
+            skipped = 0
 
-        # Read and import CSV
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            # Skip header comment lines
-            for line in f:
-                if not line.startswith('#'):
-                    f.seek(f.tell() - len(line) - 1)
-                    break
+            # Read and import CSV
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                # Skip header comment lines
+                for line in f:
+                    if not line.startswith('#'):
+                        f.seek(f.tell() - len(line) - 1)
+                        break
 
-            reader = csv.DictReader(f)
+                reader = csv.DictReader(f)
 
-            for row in reader:
-                try:
-                    bssid = row.get('MAC', '').strip().upper()
-                    ssid = row.get('SSID', '').strip()
+                for row in reader:
+                    try:
+                        bssid = row.get('MAC', '').strip().upper()
+                        ssid = row.get('SSID', '').strip()
 
-                    if not bssid:
+                        if not bssid:
+                            skipped += 1
+                            continue
+
+                        # Parse encryption
+                        auth_mode = row.get('AuthMode', '')
+                        encryption = self._parse_encryption(auth_mode)
+
+                        # Parse location
+                        try:
+                            lat = float(row.get('CurrentLatitude', 0))
+                            lon = float(row.get('CurrentLongitude', 0))
+                        except (ValueError, TypeError):
+                            lat = lon = None
+
+                        # Parse first seen timestamp
+                        first_seen_str = row.get('FirstSeen', '')
+                        try:
+                            first_seen = datetime.strptime(first_seen_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            first_seen = datetime.utcnow()
+
+                        # Parse channel
+                        try:
+                            channel = int(row.get('Channel', 0))
+                        except (ValueError, TypeError):
+                            channel = None
+
+                        # Parse signal
+                        try:
+                            signal = int(row.get('RSSI', 0))
+                        except (ValueError, TypeError):
+                            signal = None
+
+                        # Get or create network
+                        network = self.get_network_by_bssid(session, bssid)
+
+                        if network is None:
+                            # Create new network
+                            network = Network(
+                                bssid=bssid,
+                                ssid=ssid if ssid else None,
+                                encryption=encryption,
+                                channel=channel,
+                                latitude=lat,
+                                longitude=lon,
+                                first_seen=first_seen,
+                                last_seen=first_seen
+                            )
+
+                            if signal:
+                                network.max_signal = signal
+                                network.min_signal = signal
+                                network.avg_signal = signal
+
+                            session.add(network)
+                            imported += 1
+                        else:
+                            # Update existing network
+                            if not network.ssid and ssid:
+                                network.ssid = ssid
+
+                            if not network.encryption and encryption:
+                                network.encryption = encryption
+
+                            if not network.latitude and lat:
+                                network.latitude = lat
+                                network.longitude = lon
+
+                            if first_seen < network.first_seen:
+                                network.first_seen = first_seen
+
+                            network.last_seen = max(network.last_seen, first_seen)
+
+                            updated += 1
+
+                        # Add observation
+                        if lat and lon:
+                            obs = NetworkObservation(
+                                network=network,
+                                latitude=lat,
+                                longitude=lon,
+                                signal_strength=signal,
+                                timestamp=first_seen,
+                                source='wigle'
+                            )
+                            session.add(obs)
+
+                        # We don't commit periodically here, the session.commit() at the end of the context manager will handle it.
+
+                    except Exception as e:
+                        main_logger.exception(f"Error importing row: {e}")
                         skipped += 1
                         continue
 
-                    # Parse encryption
-                    auth_mode = row.get('AuthMode', '')
-                    encryption = self._parse_encryption(auth_mode)
+            # Update import record
+            wigle_import.networks_imported = imported
+            wigle_import.networks_updated = updated
+            wigle_import.networks_skipped = skipped
+            session.add(wigle_import)
 
-                    # Parse location
-                    try:
-                        lat = float(row.get('CurrentLatitude', 0))
-                        lon = float(row.get('CurrentLongitude', 0))
-                    except (ValueError, TypeError):
-                        lat = lon = None
+            main_logger.info(f"WiGLE import complete:")
+            main_logger.info(f"    Imported: {imported}")
+            main_logger.info(f"    Updated: {updated}")
+            main_logger.info(f"    Skipped: {skipped}")
 
-                    # Parse first seen timestamp
-                    first_seen_str = row.get('FirstSeen', '')
-                    try:
-                        first_seen = datetime.strptime(first_seen_str, '%Y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        first_seen = datetime.utcnow()
-
-                    # Parse channel
-                    try:
-                        channel = int(row.get('Channel', 0))
-                    except (ValueError, TypeError):
-                        channel = None
-
-                    # Parse signal
-                    try:
-                        signal = int(row.get('RSSI', 0))
-                    except (ValueError, TypeError):
-                        signal = None
-
-                    # Get or create network
-                    network = self.get_network_by_bssid(session, bssid)
-
-                    if network is None:
-                        # Create new network
-                        network = Network(
-                            bssid=bssid,
-                            ssid=ssid if ssid else None,
-                            encryption=encryption,
-                            channel=channel,
-                            latitude=lat,
-                            longitude=lon,
-                            first_seen=first_seen,
-                            last_seen=first_seen
-                        )
-
-                        if signal:
-                            network.max_signal = signal
-                            network.min_signal = signal
-                            network.avg_signal = signal
-
-                        session.add(network)
-                        imported += 1
-                    else:
-                        # Update existing network
-                        if not network.ssid and ssid:
-                            network.ssid = ssid
-
-                        if not network.encryption and encryption:
-                            network.encryption = encryption
-
-                        if not network.latitude and lat:
-                            network.latitude = lat
-                            network.longitude = lon
-
-                        if first_seen < network.first_seen:
-                            network.first_seen = first_seen
-
-                        network.last_seen = max(network.last_seen, first_seen)
-
-                        updated += 1
-
-                    # Add observation
-                    if lat and lon:
-                        obs = NetworkObservation(
-                            network=network,
-                            latitude=lat,
-                            longitude=lon,
-                            signal_strength=signal,
-                            timestamp=first_seen,
-                            source='wigle'
-                        )
-                        session.add(obs)
-
-                    # Commit periodically
-                    if (imported + updated) % 100 == 0:
-                        session.commit()
-
-                except Exception as e:
-                    print(f"[!] Error importing row: {e}")
-                    skipped += 1
-                    continue
-
-        # Final commit
-        session.commit()
-
-        # Update import record
-        wigle_import.networks_imported = imported
-        wigle_import.networks_updated = updated
-        wigle_import.networks_skipped = skipped
-        session.add(wigle_import)
-        session.commit()
-
-        print(f"[+] WiGLE import complete:")
-        print(f"    Imported: {imported}")
-        print(f"    Updated: {updated}")
-        print(f"    Skipped: {skipped}")
-
-        return wigle_import
+            return wigle_import
 
     def _parse_encryption(self, auth_mode: str) -> str:
         """Parse encryption type from WiGLE auth mode"""
@@ -352,11 +357,16 @@ class DatabaseManager:
 
     def vacuum_database(self):
         """Optimize database (SQLite VACUUM)"""
-        with self.engine.connect() as conn:
-            conn.execute("VACUUM")
+        with self.get_session() as session:
+            session.connection().execute(text("VACUUM"))
+            main_logger.info("Database VACUUMed.")
 
     def backup_database(self, backup_path: str):
         """Create a backup of the database"""
         import shutil
-        shutil.copy2(self.db_path, backup_path)
-        print(f"[+] Database backed up to: {backup_path}")
+        try:
+            shutil.copy2(self.db_path, backup_path)
+            main_logger.info(f"Database backed up to: {backup_path}")
+        except Exception as e:
+            main_logger.exception(f"Error backing up database to {backup_path}: {e}")
+

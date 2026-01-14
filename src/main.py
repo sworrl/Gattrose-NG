@@ -8,159 +8,285 @@ Developed by REAvER from Falcon Technix
 """
 
 import sys
+
 import os
+
 from pathlib import Path
 
-# Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+from src.utils.logger import main_logger
+
 
 
 def check_prerequisites():
+
     """Check if all prerequisites are met"""
+
     try:
+
         from src.core.prerequisites import PrerequisiteChecker
 
+
+
         checker = PrerequisiteChecker()
+
         checker.check_all()
 
+
+
         if not checker.all_required_met():
-            print("[!] Missing required prerequisites")
-            print("[*] Launching prerequisite installer...")
+
+            main_logger.warning("Missing required prerequisites")
+
+            main_logger.info("Launching prerequisite installer...")
+
             return False
 
-        print("[+] All required prerequisites are met")
+
+
+        main_logger.info("All required prerequisites are met")
+
         return True
 
+
+
     except Exception as e:
-        print(f"[!] Error checking prerequisites: {e}")
-        import traceback
-        traceback.print_exc()
+
+        main_logger.exception(f"Error checking prerequisites: {e}")
+
         return False
+
+
+
 
 
 def launch_prerequisite_installer():
+
     """Launch the prerequisite installer GUI"""
+
     try:
+
         from src.gui.prereq_installer import PrerequisiteInstallerGUI
 
+
+
         installer = PrerequisiteInstallerGUI()
+
         should_continue = installer.run()
 
+
+
         if not should_continue:
-            print("[*] User cancelled installation")
+
+            main_logger.info("User cancelled installation")
+
             return False
 
-        print("[+] Prerequisites satisfied, continuing to main application...")
+
+
+        main_logger.info("Prerequisites satisfied, continuing to main application...")
+
         return True
 
+
+
     except Exception as e:
-        print(f"[!] Error in prerequisite installer: {e}")
-        import traceback
-        traceback.print_exc()
+
+        main_logger.exception(f"Error in prerequisite installer: {e}")
+
         return False
 
 
+
+
+
 def launch_main_app():
+
     """Launch the main Qt6 application"""
+
     try:
+
         from PyQt6.QtCore import Qt
+
         from PyQt6.QtWidgets import QApplication
+
         from src.gui.main_window import MainWindow
 
+
+
         # IMPORTANT: Set this BEFORE creating QApplication
+
         # Required for QtWebEngineWidgets to work properly
+
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
+
+
         # Disable Chromium sandbox when running as root
+
         # QtWebEngine uses Chromium internally which doesn't support running as root with sandbox
+
         if os.geteuid() == 0:
+
             os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--no-sandbox'
 
+            main_logger.info("Running as root, disabling Chromium sandbox for QtWebEngine.")
+
+
+
         # Create Qt application
+
         app = QApplication(sys.argv)
+
         app.setApplicationName("Gattrose")
+
         app.setOrganizationName("Gattrose")
 
+
+
         # Create and show main window
+
         window = MainWindow()
+
         window.show()
 
+
+
         # Run event loop
+
         return app.exec()
 
+
+
     except ImportError as e:
-        print(f"[!] Failed to import Qt6 modules: {e}")
-        print("[!] Please ensure PyQt6 is installed in the virtual environment")
-        print("[*] Run: pip install PyQt6")
+
+        main_logger.error(f"Failed to import Qt6 modules: {e}")
+
+        main_logger.error("Please ensure PyQt6 is installed in the virtual environment. Run: pip install PyQt6")
+
         return 1
+
     except Exception as e:
-        print(f"[!] Error launching main application: {e}")
-        import traceback
-        traceback.print_exc()
+
+        main_logger.exception(f"Error launching main application: {e}")
+
         return 1
+
+
+
 
 
 def main():
+
     """Main entry point"""
-    print("\n" + "="*60)
-    print("  Gattrose - Wireless Penetration Testing Suite")
-    print("  Starting application...")
-    print("="*60 + "\n")
+
+    main_logger.info("="*60)
+
+    main_logger.info("  Gattrose - Wireless Penetration Testing Suite")
+
+    main_logger.info("  Starting application...")
+
+    main_logger.info("="*60)
+
+
 
     # Check for and kill duplicate/stuck processes
+
     try:
+
         from src.utils.process_manager import check_and_cleanup_processes
 
-        print("[*] Checking for duplicate or stuck processes...")
+
+
+        main_logger.info("Checking for duplicate or stuck processes...")
+
         if not check_and_cleanup_processes():
-            print("[!] Warning: Process cleanup failed, continuing anyway...")
+
+            main_logger.warning("Process cleanup failed, continuing anyway...")
+
         else:
-            print("[✓] Process check complete\n")
+
+            main_logger.info("Process check complete")
+
+
 
     except Exception as e:
-        print(f"[!] Warning: Process manager error: {e}")
-        print("[*] Continuing anyway...\n")
+
+        main_logger.exception(f"Warning: Process manager error: {e}. Continuing anyway...")
+
+
 
     # Run boot-time verification and auto-fix
+
     try:
+
         from src.core.boot_verify import verify_at_boot
 
-        print("[*] Running boot-time verification...")
+
+
+        main_logger.info("Running boot-time verification...")
+
         if not verify_at_boot():
-            print("[!] Warning: Boot verification found errors")
-            print("[*] Attempting to continue anyway...\n")
+
+            main_logger.warning("Boot verification found errors. Attempting to continue anyway...")
+
         else:
-            print("[✓] Boot verification complete\n")
+
+            main_logger.info("Boot verification complete")
+
     except Exception as e:
-        print(f"[!] Warning: Boot verification error: {e}")
-        print("[*] Continuing anyway...\n")
+
+        main_logger.exception(f"Warning: Boot verification error: {e}. Continuing anyway...")
+
+
 
     # Set environment for proper Qt operation
+
     os.environ.setdefault('QT_AUTO_SCREEN_SCALE_FACTOR', '1')
 
+
+
     # Check prerequisites
+
     prereqs_ok = check_prerequisites()
 
+
+
     if not prereqs_ok:
+
         # Launch installer
+
         if not launch_prerequisite_installer():
-            print("[*] Exiting...")
+
+            main_logger.info("Exiting...")
+
             return 1
 
+
+
     # Launch main application
-    print("[*] Launching Gattrose main application...")
+
+    main_logger.info("Launching Gattrose main application...")
+
     return launch_main_app()
 
 
+
+
+
 if __name__ == "__main__":
+
     try:
+
         sys.exit(main())
+
     except KeyboardInterrupt:
-        print("\n[*] Interrupted by user")
+
+        main_logger.info("Interrupted by user")
+
         sys.exit(0)
+
     except Exception as e:
-        print(f"\n[!] Fatal error: {e}")
-        import traceback
-        traceback.print_exc()
+
+        main_logger.exception(f"Fatal error: {e}")
+
         sys.exit(1)

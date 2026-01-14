@@ -1,0 +1,18 @@
+[project]
+name = "gattrose-ng"
+version = "0.1.0"
+description = "A wireless penetration testing suite."
+authors = [
+    { name = "Your Name", email = "you@example.com" },
+    { name = "REAvER", email = "reaver@falcontechnix.com" },
+]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-Event Manager for Gattrose-NG
-Handles event logging and notification system for toast popups
-Supports both file-based events (for tray) and Qt signals (for GUI)
-"""
-
 import json
 import time
 from pathlib import Path
@@ -12,6 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import deque
 import threading
+from src.utils.logger import main_logger
 
 # Optional Qt support for real-time GUI updates
 try:
@@ -158,9 +153,9 @@ class EventManager(QObject if QT_AVAILABLE else object):
             os.chmod(self.events_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
         except PermissionError as e:
             # Silently ignore permission errors (file owned by different user)
-            pass
+            main_logger.warning(f"Permission error writing events file: {e}")
         except Exception as e:
-            print(f"[!] Error writing events: {e}")
+            main_logger.exception(f"Error writing events: {e}")
 
     def _should_emit(self, event_type: str) -> bool:
         """Check if event should be emitted based on rate limiting"""

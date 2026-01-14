@@ -1,8 +1,3 @@
-"""
-Real-time WiFi scanner using airodump-ng
-Captures all APs and associated clients with verbose data
-"""
-
 import subprocess
 import os
 import time
@@ -14,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 from PyQt6.QtCore import QThread, pyqtSignal
 from concurrent.futures import ThreadPoolExecutor
 import threading
+from src.utils.logger import main_logger
 
 # Import database service
 try:
@@ -21,7 +17,7 @@ try:
     DATABASE_ENABLED = True
 except ImportError:
     DATABASE_ENABLED = False
-    print("[!] Database service not available - running without database")
+    main_logger.warning("Database service not available - running without database")
 
 # Import GPS service
 try:
@@ -29,7 +25,7 @@ try:
     GPS_ENABLED = True
 except ImportError:
     GPS_ENABLED = False
-    print("[!] GPS service not available - running without GPS tracking")
+    main_logger.warning("GPS service not available - running without GPS tracking")
 
 
 class WiFiAccessPoint:
@@ -97,7 +93,7 @@ class WiFiAccessPoint:
                 # NOTE: Device fingerprinting moved to background thread
                 # Scanner will call calculate_attack_score_async() separately
         except Exception as e:
-            print(f"[!] Error parsing AP row: {e}")
+            main_logger.error(f"Error parsing AP row: {e}")
 
     def calculate_attack_score(self):
         """Calculate attack difficulty score and identify device (thread-safe)"""
@@ -143,11 +139,9 @@ class WiFiAccessPoint:
 
                 self._fingerprinted = True  # Mark as fingerprinted
 
-            print(f"[DEBUG] AP {self.bssid}: Vendor={self.vendor}, Device={self.device_type}, WPS={self.wps_enabled}, Score={self.attack_score}")
+            main_logger.debug(f"AP {self.bssid}: Vendor={self.vendor}, Device={self.device_type}, WPS={self.wps_enabled}, Score={self.attack_score}")
         except Exception as e:
-            print(f"[ERROR] calculate_attack_score failed for {self.bssid}: {e}")
-            import traceback
-            traceback.print_exc()
+            main_logger.exception(f"calculate_attack_score failed for {self.bssid}: {e}")
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for display/storage"""
@@ -211,7 +205,7 @@ class WiFiClient:
                 # NOTE: Device fingerprinting moved to background thread
                 # Scanner will call identify_device() separately in thread pool
         except Exception as e:
-            print(f"[!] Error parsing client row: {e}")
+            main_logger.error(f"Error parsing client row: {e}")
 
     def identify_device(self):
         """Identify client device based on MAC and probed SSIDs (thread-safe)"""
@@ -280,7 +274,7 @@ class WiFiScanner(QThread):
         self.gps_service = get_gps_service() if GPS_ENABLED else None
         if self.gps_service:
             self.gps_service.start()  # Start background GPS updates
-            print(f"[GPS] {self.gps_service.get_status_string()}")
+            main_logger.info(f"[GPS] {self.gps_service.get_status_string()}")
 
         # Scanning intelligence for saturation detection
         self.scan_start_time = None
@@ -320,6 +314,7 @@ class WiFiScanner(QThread):
 
             self.status_message.emit(f"Starting scan on {self.interface}")
             self.status_message.emit(f"Command: {' '.join(cmd)}")
+            main_logger.info(f"Starting airodump-ng with command: {' '.join(cmd)}")
 
             # Start airodump-ng
             # NOTE: stdout/stderr must NOT be piped - airodump doesn't work properly with pipes
@@ -333,12 +328,14 @@ class WiFiScanner(QThread):
 
             self.scan_started.emit()
             self.status_message.emit("Scan started - capturing data...")
+            main_logger.info("Scan started - capturing data...")
 
             # Initialize database for new scan
             if self.scan_db:
                 self.scan_db.start_new_scan()
                 self.scan_db.start_upsert_worker()
                 self.status_message.emit("Database initialized for new scan")
+                main_logger.info("Database initialized for new scan")
 
             # Start WPS scanning in parallel
             self.start_wps_scan()
@@ -354,6 +351,7 @@ class WiFiScanner(QThread):
                     # Process exited (stderr is DEVNULL so can't get error details)
                     error_msg = f"airodump-ng exited unexpectedly. Check that wlp7s0mon is in monitor mode."
                     self.error_occurred.emit(error_msg)
+                    main_logger.error(error_msg)
                     self.running = False
                     return
 
@@ -365,8 +363,11 @@ class WiFiScanner(QThread):
                 if self.process.poll() is not None:
                     error_msg = f"airodump-ng failed to start. Check monitor mode and permissions."
                     self.error_occurred.emit(error_msg)
+                    main_logger.error(error_msg)
                 else:
-                    self.error_occurred.emit("CSV file not created - check airodump-ng. Process is running but not producing output. Try restarting monitor mode.")
+                    error_msg = "CSV file not created - check airodump-ng. Process is running but not producing output. Try restarting monitor mode."
+                    self.error_occurred.emit(error_msg)
+                    main_logger.error(error_msg)
                 self.running = False
                 return
 
@@ -389,11 +390,13 @@ class WiFiScanner(QThread):
 
                 except Exception as e:
                     self.error_occurred.emit(f"Error reading CSV: {e}")
+                    main_logger.exception(f"Error reading CSV: {e}")
 
                 time.sleep(1)  # Check every second
 
         except Exception as e:
             self.error_occurred.emit(f"Scanner error: {e}")
+            main_logger.exception(f"Scanner error: {e}")
         finally:
             self.cleanup()
 
@@ -415,6 +418,7 @@ class WiFiScanner(QThread):
 
         except Exception as e:
             self.error_occurred.emit(f"CSV parse error: {e}")
+            main_logger.exception(f"CSV parse error: {e}")
 
     def _fingerprint_ap_async(self, ap: WiFiAccessPoint):
         """Fingerprint AP in background thread"""
@@ -426,7 +430,7 @@ class WiFiScanner(QThread):
             if self.scan_db:
                 self._update_ap_in_db(ap)
         except Exception as e:
-            print(f"[!] Error fingerprinting AP {ap.bssid}: {e}")
+            main_logger.exception(f"Error fingerprinting AP {ap.bssid}: {e}")
         finally:
             # Remove from queue
             self.fingerprint_queue.discard(ap.bssid)
@@ -441,7 +445,7 @@ class WiFiScanner(QThread):
             if self.scan_db:
                 self._update_client_in_db(client, client.bssid)
         except Exception as e:
-            print(f"[!] Error fingerprinting client {client.mac}: {e}")
+            main_logger.exception(f"Error fingerprinting client {client.mac}: {e}")
         finally:
             # Remove from queue
             self.fingerprint_queue.discard(client.mac)
@@ -476,6 +480,7 @@ class WiFiScanner(QThread):
                     self.last_new_ap_time = time.time()  # Track discovery time for saturation
                     self.ap_discovered.emit(ap)
                     self.status_message.emit(f"New AP: {ap.ssid or bssid} [{ap.encryption}]")
+                    main_logger.info(f"New AP discovered: {ap.ssid or bssid} [{ap.bssid}] [{ap.encryption}]")
 
                     # Queue fingerprinting in background
                     if bssid not in self.fingerprint_queue:
@@ -492,6 +497,7 @@ class WiFiScanner(QThread):
 
         except Exception as e:
             self.error_occurred.emit(f"AP parse error: {e}")
+            main_logger.exception(f"AP parse error: {e}")
 
     def parse_client_section(self, section: str):
         """Parse Clients section of CSV"""
@@ -530,6 +536,7 @@ class WiFiScanner(QThread):
                     self.last_new_client_time = time.time()  # Track discovery time for saturation
                     self.client_discovered.emit(client, bssid)
                     self.status_message.emit(f"New client: {mac} -> {bssid}")
+                    main_logger.info(f"New client discovered: {mac} -> {bssid}")
 
                     # Queue fingerprinting in background
                     if mac not in self.fingerprint_queue:
@@ -555,6 +562,7 @@ class WiFiScanner(QThread):
 
         except Exception as e:
             self.error_occurred.emit(f"Client parse error: {e}")
+            main_logger.exception(f"Client parse error: {e}")
 
     def start_wps_scan(self):
         """Start WPS scanning using wash tool"""
@@ -566,9 +574,11 @@ class WiFiScanner(QThread):
             if wash_check.returncode != 0:
                 self.status_message.emit("Note: 'wash' tool not found - WPS detection disabled")
                 self.status_message.emit("Install: sudo apt-get install reaver")
+                main_logger.warning("'wash' tool not found - WPS detection disabled. Install: sudo apt-get install reaver")
                 return
 
             self.status_message.emit("Starting WPS detection...")
+            main_logger.info("Starting WPS detection...")
 
             # Start wash in a separate thread
             wps_thread = threading.Thread(target=self._wps_scan_thread, daemon=True)
@@ -576,12 +586,14 @@ class WiFiScanner(QThread):
 
         except Exception as e:
             self.status_message.emit(f"WPS scan error: {e}")
+            main_logger.exception(f"WPS scan error: {e}")
 
     def _wps_scan_thread(self):
         """Background thread for WPS scanning"""
         try:
             # Run wash to detect WPS
             cmd = ['sudo', 'wash', '-i', self.interface, '--ignore-fcs']
+            main_logger.info(f"Starting wash with command: {' '.join(cmd)}")
 
             self.wps_process = subprocess.Popen(
                 cmd,
@@ -627,12 +639,14 @@ class WiFiScanner(QThread):
                         # Emit update
                         self.ap_updated.emit(ap)
                         self.status_message.emit(f"WPS detected: {ap.ssid or bssid} [{'LOCKED' if wps_locked else 'UNLOCKED'}]")
+                        main_logger.info(f"WPS detected for {ap.ssid or bssid}: {'LOCKED' if wps_locked else 'UNLOCKED'}")
 
                 time.sleep(0.1)
 
         except Exception as e:
             if self.running:
                 self.status_message.emit(f"WPS scan thread error: {e}")
+                main_logger.exception(f"WPS scan thread error: {e}")
 
     def is_scan_saturated(self) -> Tuple[bool, str]:
         """
@@ -640,6 +654,7 @@ class WiFiScanner(QThread):
         Returns: (is_saturated: bool, reason: str)
         """
         if not self.scan_start_time:
+            main_logger.debug("Scan not started, not saturated.")
             return (False, "Scan not started")
 
         current_time = time.time()
@@ -647,23 +662,27 @@ class WiFiScanner(QThread):
 
         # Don't declare saturation before minimum scan time
         if scan_duration < self.min_scan_time:
+            main_logger.debug(f"Min scan time not reached ({scan_duration:.0f}s / {self.min_scan_time}s), not saturated.")
             return (False, f"Min scan time not reached ({scan_duration:.0f}s / {self.min_scan_time}s)")
 
         # Check if we've discovered anything at all
         if not self.last_new_ap_time and not self.last_new_client_time:
             # No discoveries yet - probably just started or environment is empty
+            main_logger.debug("No discoveries yet, not saturated.")
             return (False, "No discoveries yet")
 
         # Check time since last AP discovery
         if self.last_new_ap_time:
             time_since_last_ap = current_time - self.last_new_ap_time
             if time_since_last_ap < self.saturation_threshold:
+                main_logger.debug(f"Still discovering APs (last: {time_since_last_ap:.0f}s ago), not saturated.")
                 return (False, f"Still discovering APs (last: {time_since_last_ap:.0f}s ago)")
 
         # Check time since last client discovery
         if self.last_new_client_time:
             time_since_last_client = current_time - self.last_new_client_time
             if time_since_last_client < self.saturation_threshold:
+                main_logger.debug(f"Still discovering clients (last: {time_since_last_client:.0f}s ago), not saturated.")
                 return (False, f"Still discovering clients (last: {time_since_last_client:.0f}s ago)")
 
         # Both APs and clients have not been discovered for threshold time
@@ -671,7 +690,7 @@ class WiFiScanner(QThread):
             current_time - (self.last_new_ap_time or 0),
             current_time - (self.last_new_client_time or 0)
         )
-
+        main_logger.info(f"Scan saturated: No new discoveries in {time_since_last:.0f}s (threshold: {self.saturation_threshold}s).")
         return (True, f"No new discoveries in {time_since_last:.0f}s (threshold: {self.saturation_threshold}s)")
 
     def get_scan_statistics(self) -> dict:
@@ -698,11 +717,13 @@ class WiFiScanner(QThread):
     def stop(self):
         """Stop scanning"""
         self.running = False
+        main_logger.info("WiFi scanner stop requested.")
 
     def save_extended_csv(self):
         """Save extended CSV with WPS and device info"""
         try:
             if not self.output_prefix:
+                main_logger.warning("No output prefix set, cannot save extended CSV.")
                 return
 
             extended_csv = f"{self.output_prefix}-extended.csv"
@@ -761,46 +782,59 @@ class WiFiScanner(QThread):
                     ])
 
             self.status_message.emit(f"Saved extended CSV: {extended_csv}")
+            main_logger.info(f"Saved extended CSV: {extended_csv}")
 
         except Exception as e:
             self.error_occurred.emit(f"Error saving extended CSV: {e}")
+            main_logger.exception(f"Error saving extended CSV: {e}")
 
     def cleanup(self):
         """Clean up resources"""
+        main_logger.info("Starting WiFi scanner cleanup...")
         # Save extended CSV before cleanup
         self.save_extended_csv()
 
         # Stop database upsert worker
         if self.scan_db:
             self.scan_db.stop_upsert_worker()
+            main_logger.info("Database upsert worker stopped.")
 
         # Shutdown fingerprint thread pool
         if hasattr(self, 'fingerprint_executor'):
             self.status_message.emit("Waiting for fingerprinting to complete...")
+            main_logger.info("Waiting for fingerprinting to complete...")
             self.fingerprint_executor.shutdown(wait=True, cancel_futures=False)
+            main_logger.info("Fingerprinting thread pool shutdown complete.")
 
         if self.process:
+            main_logger.info("Terminating airodump-ng process...")
             try:
                 self.process.terminate()
                 self.process.wait(timeout=5)
-            except:
-                try:
-                    self.process.kill()
-                except:
-                    pass
+                main_logger.info("airodump-ng process terminated.")
+            except subprocess.TimeoutExpired:
+                main_logger.warning("airodump-ng process did not terminate gracefully, killing...")
+                self.process.kill()
+                main_logger.info("airodump-ng process killed.")
+            except Exception as e:
+                main_logger.exception(f"Error terminating airodump-ng process: {e}")
 
         if self.wps_process:
+            main_logger.info("Terminating wash process...")
             try:
                 self.wps_process.terminate()
                 self.wps_process.wait(timeout=5)
-            except:
-                try:
-                    self.wps_process.kill()
-                except:
-                    pass
+                main_logger.info("wash process terminated.")
+            except subprocess.TimeoutExpired:
+                main_logger.warning("wash process did not terminate gracefully, killing...")
+                self.wps_process.kill()
+                main_logger.info("wash process killed.")
+            except Exception as e:
+                main_logger.exception(f"Error terminating wash process: {e}")
 
         self.scan_stopped.emit()
         self.status_message.emit("Scan stopped")
+        main_logger.info("WiFi scanner cleanup complete. Scan stopped.")
 
     def get_all_aps(self) -> List[WiFiAccessPoint]:
         """Get all discovered APs"""
@@ -832,12 +866,14 @@ class WiFiScanner(QThread):
             if ap.first_seen:
                 try:
                     first_seen = datetime.strptime(ap.first_seen, "%Y-%m-%d %H:%M:%S")
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse first_seen timestamp for AP {ap.bssid}: {ap.first_seen}")
                     pass
             if ap.last_seen:
                 try:
                     last_seen = datetime.strptime(ap.last_seen, "%Y-%m-%d %H:%M:%S")
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse last_seen timestamp for AP {ap.bssid}: {ap.last_seen}")
                     pass
 
             # Convert power to int
@@ -845,7 +881,8 @@ class WiFiScanner(QThread):
             if ap.power and ap.power.strip():
                 try:
                     power = int(ap.power.strip())
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse power for AP {ap.bssid}: {ap.power}")
                     pass
 
             # Get current GPS location
@@ -885,9 +922,7 @@ class WiFiScanner(QThread):
             self.scan_db.update_network(network_data)
 
         except Exception as e:
-            print(f"[!] Error updating AP in database: {e}")
-            import traceback
-            traceback.print_exc()
+            main_logger.exception(f"Error updating AP in database: {e}")
 
     def _update_client_in_db(self, client: WiFiClient, bssid: str):
         """Update client in database"""
@@ -898,12 +933,14 @@ class WiFiScanner(QThread):
             if client.first_seen:
                 try:
                     first_seen = datetime.strptime(client.first_seen, "%Y-%m-%d %H:%M:%S")
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse first_seen timestamp for client {client.mac}: {client.first_seen}")
                     pass
             if client.last_seen:
                 try:
                     last_seen = datetime.strptime(client.last_seen, "%Y-%m-%d %H:%M:%S")
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse last_seen timestamp for client {client.mac}: {client.last_seen}")
                     pass
 
             # Convert power to int
@@ -911,7 +948,8 @@ class WiFiScanner(QThread):
             if client.power and client.power.strip():
                 try:
                     power = int(client.power.strip())
-                except:
+                except ValueError:
+                    main_logger.warning(f"Could not parse power for client {client.mac}: {client.power}")
                     pass
 
             # Get current GPS location
@@ -941,6 +979,4 @@ class WiFiScanner(QThread):
             self.scan_db.update_client(client_data)
 
         except Exception as e:
-            print(f"[!] Error updating client in database: {e}")
-            import traceback
-            traceback.print_exc()
+            main_logger.exception(f"Error updating client in database: {e}")

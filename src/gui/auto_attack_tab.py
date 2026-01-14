@@ -771,7 +771,84 @@ class AutoAttackTab(QWidget):
     def add_targets_from_scanner(self):
         """Add selected targets from scanner tab"""
         self.log("📝 Adding targets from scanner...")
-        # TODO: Get selected APs from scanner tab and add to queue
+
+        if not self.main_window:
+            self.log("⚠️ Main window reference not set")
+            return
+
+        # Get scanner tab reference
+        scanner_tab = getattr(self.main_window, 'scanner_tab', None)
+        if not scanner_tab:
+            self.log("⚠️ Scanner tab not found")
+            return
+
+        # Get the network tree from scanner tab
+        network_tree = getattr(scanner_tab, 'network_tree', None)
+        if not network_tree:
+            self.log("⚠️ Network tree not found in scanner")
+            return
+
+        # Get selected items from scanner
+        selected_items = network_tree.selectedItems()
+
+        if not selected_items:
+            self.log("⚠️ No networks selected in scanner - please select networks first")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                "No Selection",
+                "Please select one or more networks in the Scanner tab first,\n"
+                "then click 'Add Selected Targets' to add them to the attack queue."
+            )
+            return
+
+        added_count = 0
+        for item in selected_items:
+            # Skip if this is a child item (client) not a network
+            parent = item.parent()
+
+            # Handle both top-level networks and SSID-grouped networks
+            if parent is None:
+                # Top-level item - could be a network or SSID group
+                network_item = item
+            else:
+                # Child of a group - this is the actual network
+                network_item = item
+
+            # Extract network data from tree columns
+            # Column layout: SSID, BSSID/MAC, Device, Score, Enc, WPS, Clients, Pwr, Chan, Last Seen
+            try:
+                ssid = network_item.text(0) or ""
+                bssid_col = network_item.text(1)  # Contains icon + MAC + vendor
+                encryption = network_item.text(4) or ""
+                channel = network_item.text(8) or ""
+
+                # Extract MAC address from BSSID column
+                import re
+                mac_match = re.search(r'([0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2})', bssid_col)
+                if mac_match:
+                    bssid = mac_match.group(1).upper()
+                else:
+                    # Skip if no valid BSSID found (might be a group header)
+                    continue
+
+                # Add to queue
+                self.queue_target(
+                    bssid=bssid,
+                    ssid=ssid,
+                    channel=channel,
+                    encryption=encryption
+                )
+                added_count += 1
+
+            except Exception as e:
+                self.log(f"⚠️ Error adding target: {e}")
+                continue
+
+        if added_count > 0:
+            self.log(f"✅ Added {added_count} target(s) to attack queue")
+        else:
+            self.log("⚠️ No valid networks found in selection")
 
     def clear_queue(self):
         """Clear target queue"""
